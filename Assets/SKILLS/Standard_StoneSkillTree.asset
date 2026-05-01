@@ -1,0 +1,90 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54d5d29b10be90e40ba3386a48a10b03, type: 3}
+  m_Name: Standard_StoneSkillTree
+  m_EditorClassIdentifier: Assembly-CSharp::SkillTreeDefinition
+  treeName: Standard Physical
+  skillPointsPerLevel: 1
+  nodes:
+  - id: Standard_Stone_AOE
+    displayName: Standard Stone Tower AOE Size
+    description: '+0.04 AOE size / point for Standard Stone Tower '
+    icon: {fileID: 0}
+    maxLevel: 20
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites: []
+    effectType: 13
+    effectValuePerLevel: 0.04
+  - id: Standard_Stone_Single_DMG
+    displayName: Lvl1 Stone Attack DMG
+    description: '+0.2 Single Target DMG / point for Standard Stone Tower '
+    icon: {fileID: 0}
+    maxLevel: 20
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites:
+    - Standard_Stone_AOE
+    effectType: 7
+    effectValuePerLevel: 0.2
+  - id: Tower_Armor
+    displayName: Tower Armor Boost
+    description: '+1 Armor / point for Standard Stone Tower '
+    icon: {fileID: 0}
+    maxLevel: 20
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites:
+    - Standard_Stone_AOE
+    effectType: 14
+    effectValuePerLevel: 1
+  - id: Standard_Stone_AOE_DMG
+    displayName: Standard Stone AOE DMG Boost
+    description: '+0.1 AOE DMG / point for Standard Stone Tower '
+    icon: {fileID: 0}
+    maxLevel: 20
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites:
+    - Standard_Stone_AOE
+    effectType: 13
+    effectValuePerLevel: 0.1
+  - id: Standard_Stone_Attack_speed
+    displayName: Standard Stone Attack Speed
+    description: '+0.05 Attack Speed / point for Standard Stone Tower '
+    icon: {fileID: 0}
+    maxLevel: 20
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites:
+    - Standard_Stone_Single_DMG
+    - Tower_Armor
+    - Standard_Stone_AOE_DMG
+    effectType: 9
+    effectValuePerLevel: 0.05
+  - id: Unlock_Stone_Tower_Lvl2
+    displayName: Unlock Stone Tower Lvl2
+    description: 'Unlock Stone Tower Lvl2 + Lvl2 Skill Tree  '
+    icon: {fileID: 0}
+    maxLevel: 1
+    costPerLevel: 10
+    row: 4
+    column: 2
+    prerequisites:
+    - Standard_Stone_Attack_speed
+    effectType: 0
+    effectValuePerLevel: 0

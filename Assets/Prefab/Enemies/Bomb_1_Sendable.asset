@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ace3781b69967f0498e6f5c57564ce89, type: 3}
+  m_Name: Bomb_1_Sendable
+  m_EditorClassIdentifier: Assembly-CSharp::SendableEnemyDefinition
+  enemyName: Bomb_lvl1
+  icon: {fileID: -7511654133127816962, guid: 1a17839080e243d43b7150a7571a123c, type: 3}
+  goldCost: 60
+  prefab: {fileID: 6345430543806320468, guid: 6850e3d9f4fc0764ca61171ad9674276, type: 3}
+  description: Booooooom on death!

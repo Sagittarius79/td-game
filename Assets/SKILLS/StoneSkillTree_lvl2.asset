@@ -1,0 +1,79 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54d5d29b10be90e40ba3386a48a10b03, type: 3}
+  m_Name: StoneSkillTree_lvl2
+  m_EditorClassIdentifier: Assembly-CSharp::SkillTreeDefinition
+  treeName: Phisycal
+  skillPointsPerLevel: 1
+  nodes:
+  - id: Stone_Focus_Attack
+    displayName: Stone Focus Attack
+    description: +0.01 speed if the tower shoots to the same target / point for Stone
+      Tower Lvl2
+    icon: {fileID: 0}
+    maxLevel: 40
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites:
+    - Unlock_Stone_Tower_Lvl2
+    effectType: 16
+    effectValuePerLevel: 0.01
+  - id: Stone_Magic_AOE
+    displayName: Stone Magic AOE
+    description: +0.1 Magic AOE DMG / Skill Point
+    icon: {fileID: 0}
+    maxLevel: 40
+    costPerLevel: 1
+    row: 1
+    column: 2
+    prerequisites:
+    - Stone_Focus_Attack
+    effectType: 17
+    effectValuePerLevel: 0.1
+  - id: Stone_Fire_Ball
+    displayName: Stone Fireball
+    description: 'Instead of every 40th shot, it fires a FireStoneBall, causing burns
+      to the enemy for 5 seconds.  -1 needed shots / SKILL '
+    icon: {fileID: 0}
+    maxLevel: 30
+    costPerLevel: 5
+    row: 2
+    column: 3
+    prerequisites:
+    - Stone_Focus_Attack
+    effectType: 16
+    effectValuePerLevel: 1
+  - id: Stone_Wait_DMG
+    displayName: Stone Wait DMG
+    description: '+0.5 Single DMG / sec / SKILL (Charging Skill DMG while wait) '
+    icon: {fileID: 0}
+    maxLevel: 40
+    costPerLevel: 5
+    row: 2
+    column: 3
+    prerequisites:
+    - Stone_Focus_Attack
+    effectType: 19
+    effectValuePerLevel: 0.5
+  - id: Stone_Single_Crit
+    displayName: Stone Single Crit
+    description: '+1 CritChance / SKILL '
+    icon: {fileID: 0}
+    maxLevel: 40
+    costPerLevel: 5
+    row: 2
+    column: 3
+    prerequisites:
+    - Stone_Focus_Attack
+    effectType: 20
+    effectValuePerLevel: 1

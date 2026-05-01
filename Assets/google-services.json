@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "184393218467",
+    "project_id": "pvptowerdefence",
+    "storage_bucket": "pvptowerdefence.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:184393218467:android:1b97794968ab24b601c216",
+        "android_client_info": {
+          "package_name": "megnemtudom.pvptowerdefence"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAHlec1zH0mclbsscvBw9pQPllmKzE-BiY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,52 @@
+# ── Unity generált mappák ────────────────────────────────────────────────────
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+MemoryCaptures/
+Recordings/
+
+# ── IL2CPP ───────────────────────────────────────────────────────────────────
+Assets/Plugins/Editor/JetBrains*
+
+# ── Asset Store tools ────────────────────────────────────────────────────────
+Assets/AssetStoreTools*
+
+# ── Visual Studio / Rider / VS Code ─────────────────────────────────────────
+.vs/
+.idea/
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.mdb
+*.opendb
+*.VC.db
+ExportedObj/
+
+# ── OS generált ──────────────────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# ── Crashlytics ──────────────────────────────────────────────────────────────
+crashlytics-build.properties
+
+# ── Build kimenet (saját) ────────────────────────────────────────────────────
+Builds/
+Build/

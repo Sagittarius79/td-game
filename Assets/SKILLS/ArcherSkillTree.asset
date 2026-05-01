@@ -1,0 +1,78 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54d5d29b10be90e40ba3386a48a10b03, type: 3}
+  m_Name: ArcherSkillTree
+  m_EditorClassIdentifier: Assembly-CSharp::SkillTreeDefinition
+  treeName: Archer
+  skillPointsPerLevel: 1
+  nodes:
+  - id: crit_hit_chance
+    displayName: Crit Hit Chance
+    description: 'Add +2% Critical Chance for all bow-based non-Basic Tower '
+    icon: {fileID: 0}
+    maxLevel: 20
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites:
+    - Unlock_archer_lvl2
+    effectType: 1
+    effectValuePerLevel: 2
+  - id: Multi_shoot
+    displayName: MultiShoot
+    description: Added increases the chance of shooting more targets at once by 1%
+      / point
+    icon: {fileID: 0}
+    maxLevel: 40
+    costPerLevel: 1
+    row: 2
+    column: 1
+    prerequisites:
+    - crit_hit_chance
+    effectType: 2
+    effectValuePerLevel: 1
+  - id: armor_pierce
+    displayName: Armor Pierce
+    description: Every shots reduces the armor by 0.1 / point
+    icon: {fileID: 0}
+    maxLevel: 30
+    costPerLevel: 1
+    row: 2
+    column: 2
+    prerequisites:
+    - crit_hit_chance
+    effectType: 3
+    effectValuePerLevel: 0.1
+  - id: Range_1
+    displayName: Range
+    description: Extend range of all Archer by 0.05 / point
+    icon: {fileID: 0}
+    maxLevel: 50
+    costPerLevel: 1
+    row: 2
+    column: 1
+    prerequisites:
+    - crit_hit_chance
+    effectType: 10
+    effectValuePerLevel: 0.05
+  - id: Stun_1
+    displayName: Stun by the Eagle
+    description: Give Stun chance to Lvl2 Archer Tower by 0.5% / point
+    icon: {fileID: 0}
+    maxLevel: 50
+    costPerLevel: 1
+    row: 2
+    column: 1
+    prerequisites:
+    - crit_hit_chance
+    effectType: 5
+    effectValuePerLevel: 0.5

@@ -1,0 +1,19 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ace3781b69967f0498e6f5c57564ce89, type: 3}
+  m_Name: Stone Giant Lvl1 sendable
+  m_EditorClassIdentifier: Assembly-CSharp::SendableEnemyDefinition
+  enemyName: Stone Giant Lvl1
+  icon: {fileID: -4712257060907457716, guid: 86cfdb80e06b9a349be5854f23cfa9a3, type: 3}
+  goldCost: 200
+  prefab: {fileID: 6345430543806320468, guid: 3ab499d6b796aa3419af50835529c97e, type: 3}
+  description: 

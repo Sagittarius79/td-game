@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//c/Users/komor/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/ce49909e-117f-49c9-85fd-3bfeaa654869/dd05e4f9-5aec-455f-92af-4cd44d683163/skills/docx/**)",
+      "Bash(pandoc --track-changes=all \"E:\\\\Unity\\\\TD\\\\TowerDefence_Dokumentacio.docx\" -o output.md)",
+      "Bash(python \"C:\\\\Users\\\\komor\\\\AppData\\\\Roaming\\\\Claude\\\\local-agent-mode-sessions\\\\skills-plugin\\\\ce49909e-117f-49c9-85fd-3bfeaa654869\\\\dd05e4f9-5aec-455f-92af-4cd44d683163\\\\skills\\\\docx\\\\scripts\\\\office\\\\unpack.py\" \"E:\\\\Unity\\\\TD\\\\TowerDefence_Dokumentacio.docx\" \"E:\\\\Unity\\\\TD\\\\unpacked_doc\"\")",
+      "Bash(python \"C:/Users/komor/AppData/Roaming/Claude/local-agent-mode-sessions/skills-plugin/ce49909e-117f-49c9-85fd-3bfeaa654869/dd05e4f9-5aec-455f-92af-4cd44d683163/skills/docx/scripts/office/unpack.py\" \"E:/Unity/TD/TowerDefence_Dokumentacio.docx\" \"E:/Unity/TD/unpacked_doc\")",
+      "Bash(pip install:*)",
+      "Bash(python -c \":*)",
+      "Bash(del \"E:\\\\Unity\\\\TD\\\\Assets\\\\Scripts\\\\Utils\\\\SortingLayerAttribute.cs\")",
+      "Bash(Remove-Item -Path \"E:\\\\Unity\\\\TD\\\\Assets\\\\Plugins\\\\Android\\\\res.meta\" -Force)",
+      "Bash(Remove-Item -Path \"E:\\\\Unity\\\\TD\\\\Assets\\\\Plugins\\\\Android\\\\res\" -Recurse -Force)",
+      "Bash(Write-Host \"Kész\")",
+      "Read(///kakaoo-szerver2/munka/Pvp/**)",
+      "Bash(taskkill /IM \"PvP Tower Defence.exe\" /F)",
+      "PowerShell(Stop-Process -Force)",
+      "Bash(netsh advfirewall *)",
+      "Bash(grep -B2 -A6 -i \"munka\\\\\\\\\\\\\\\\Pvp\\\\\\\\\\\\\\\\game\")",
+      "PowerShell($listener = [System.Net.Sockets.TcpListener]::new\\([System.Net.IPAddress]::Any, 9000\\); $listener.Start\\(\\); \"Listening on 0.0.0.0:9000 - menj canyouseeme.org-ra es tesztelj 9000-et. CTRL+C megallit.\"; while\\($true\\){ $client = $listener.AcceptTcpClient\\(\\); \"Connection from $\\($client.Client.RemoteEndPoint\\)\"; $client.Close\\(\\) })",
+      "Bash(go version *)",
+      "Bash(xcaddy version *)",
+      "Bash(nslookup kakaoo123.duckdns.org 8.8.8.8)",
+      "Bash(nslookup kakaoo123.asuscomm.com 8.8.8.8)",
+      "Read(///kakaoo-szerver2/munka/Pvp/logs/**)",
+      "Bash(sed -i -E 's|expression `\\\\{tls_client_server_name\\\\} == \"\\(p[0-9]+\\\\.kakaoo123\\\\.duckdns\\\\.org\\)\"`|vars {tls_client_server_name} \\\\1|g' \"//kakaoo-szerver2/munka/Pvp/Caddyfile\")",
+      "Bash(xargs grep *)",
+      "Bash(python -c ' *)",
+      "Read(//tmp/**)",
+      "Read(///kakaoo-szerver2/munka//**)",
+      "Bash(./caddy.exe validate *)",
+      "Bash(tasklist)",
+      "Read(//kakaoo-szerver2/munka/**)",
+      "Bash(python -)",
+      "PowerShell(python C:\\\\Users\\\\komor\\\\AppData\\\\Local\\\\Temp\\\\check_db.py)"
+    ]
+  }
+}

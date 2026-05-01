@@ -1,0 +1,74 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!78 &1
+TagManager:
+  serializedVersion: 3
+  tags:
+  - Enemy
+  layers:
+  - Default
+  - TransparentFX
+  - Ignore Raycast
+  - 
+  - Water
+  - UI
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  - 
+  m_SortingLayers:
+  - name: Default
+    uniqueID: 0
+    locked: 0
+  - name: Ground
+    uniqueID: 3215291955
+    locked: 0
+  - name: Path
+    uniqueID: 1249675181
+    locked: 0
+  - name: Decorations
+    uniqueID: 445295951
+    locked: 0
+  - name: 'Buildings '
+    uniqueID: 3055345019
+    locked: 0
+  - name: Enemies
+    uniqueID: 222305419
+    locked: 0
+  - name: Projectiles
+    uniqueID: 3862212935
+    locked: 0
+  - name: Effects
+    uniqueID: 2494548261
+    locked: 0
+  - name: UI_World
+    uniqueID: 2358145719
+    locked: 0
+  - name: New Layer 9
+    uniqueID: 3612577925
+    locked: 0
+  m_RenderingLayers:
+  - Default
+  m_MigratedRenderPipelines: []

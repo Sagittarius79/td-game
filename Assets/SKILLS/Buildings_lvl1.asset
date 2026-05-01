@@ -1,0 +1,52 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54d5d29b10be90e40ba3386a48a10b03, type: 3}
+  m_Name: Buildings_lvl1
+  m_EditorClassIdentifier: Assembly-CSharp::SkillTreeDefinition
+  treeName: Building
+  skillPointsPerLevel: 1
+  nodes:
+  - id: Building_cost_reduction
+    displayName: Building coct_reduction
+    description: '-1% Gold Building Cost / SKILL  (round down) '
+    icon: {fileID: 0}
+    maxLevel: 20
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites: []
+    effectType: 25
+    effectValuePerLevel: 1
+  - id: Building_HP_Extra
+    displayName: Building HP Extra
+    description: '+ 5 HP / SKILL '
+    icon: {fileID: 0}
+    maxLevel: 100
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites:
+    - Building_cost_reduction
+    effectType: 26
+    effectValuePerLevel: 5
+  - id: Building_HP_Regen
+    displayName: Building HP Regen
+    description: ' +HP / SKILL / Every 30 sec'
+    icon: {fileID: 0}
+    maxLevel: 100
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites:
+    - Building_cost_reduction
+    effectType: 27
+    effectValuePerLevel: 1
