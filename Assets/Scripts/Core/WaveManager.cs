@@ -108,6 +108,7 @@ public class WaveManager : MonoBehaviour
             NetworkGameManager.Instance.CheckSoloVictory();
 
         currentWave++;
+        GridManager.Instance?.TickRubble();
         _sentSoundPlayedBySender.Clear();
         if (GameManager.Instance != null)
         {

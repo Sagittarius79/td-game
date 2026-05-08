@@ -35,7 +35,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
   m_AnchoredPosition: {x: 0, y: 211.99}
-  m_SizeDelta: {x: 200, y: 50}
+  m_SizeDelta: {x: 400, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &2899480383462317870
 CanvasRenderer:
@@ -92,7 +92,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 44.75
+  m_fontSize: 72
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -563,6 +563,7 @@ MonoBehaviour:
   armor: 1
   magicResist: 1
   isLvl2: 0
+  priceSkillTree: {fileID: 11400000, guid: 9d5946e160cbb764fadb85c24e4313e5, type: 2}
   towerRenderer: {fileID: 7929277188806644574}
   rangeCircle: {fileID: 8239446158940157421}
   flipToFaceTarget: 0

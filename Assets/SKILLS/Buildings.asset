@@ -1,0 +1,127 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54d5d29b10be90e40ba3386a48a10b03, type: 3}
+  m_Name: Buildings
+  m_EditorClassIdentifier: Assembly-CSharp::SkillTreeDefinition
+  treeName: Building
+  skillPointsPerLevel: 1
+  nodes:
+  - id: Building_cost_reduction
+    displayName: Building coct_reduction
+    description: '-1% Gold for All Building Cost / SKILL  (round down) '
+    icon: {fileID: 0}
+    maxLevel: 50
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites: []
+    effectType: 25
+    effectValuePerLevel: 1
+    fixedCostPerLevel: 0
+    minCharacterLevel: 10
+  - id: Building_HP_Extra
+    displayName: Building HP Extra
+    description: '+ 10 HP for all building and Castle  / SKILL '
+    icon: {fileID: 0}
+    maxLevel: 100
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites:
+    - Building_cost_reduction
+    effectType: 26
+    effectValuePerLevel: 10
+    fixedCostPerLevel: 0
+    minCharacterLevel: 1
+  - id: Building_HP_Regen
+    displayName: Building HP Regen
+    description: ' +1HP regen to building repair pool / SKILL / Every 30 sec  (You
+      have to pay it in Gold!) The repair team comes every 30 seconds. '
+    icon: {fileID: 0}
+    maxLevel: 100
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites:
+    - Building_HP_Extra
+    effectType: 27
+    effectValuePerLevel: 1
+    fixedCostPerLevel: 0
+    minCharacterLevel: 1
+  - id: Building_HP_OVER_Regen
+    displayName: Building HP OVER Regen
+    description: +1 MAX HP / SKILL / 30 sec if the Castle is on Full HP  The repair
+      team comes every 30 seconds.
+    icon: {fileID: 0}
+    maxLevel: 5
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites:
+    - Building_HP_Regen
+    effectType: 45
+    effectValuePerLevel: 1
+    fixedCostPerLevel: 3
+    minCharacterLevel: 1
+  - id: Building_Gold_Mine_Unlock
+    displayName: Gold Mine Unlock
+    description: "You can Build Gold Mine (Passivly Give 1 Gold / sec)\t"
+    icon: {fileID: 0}
+    maxLevel: 1
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites: []
+    effectType: 0
+    effectValuePerLevel: 1
+    fixedCostPerLevel: 2
+    minCharacterLevel: 1
+  - id: Building_Gold_Mine_Boost
+    displayName: Gold Mine Boost
+    description: "Gold Mine produce +1 Gold / sec\t"
+    icon: {fileID: 0}
+    maxLevel: 1
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites:
+    - Building_Gold_Mine_Unlock
+    effectType: 43
+    effectValuePerLevel: 1
+    fixedCostPerLevel: 5
+    minCharacterLevel: 1
+  - id: Ork_Den_Unlock
+    displayName: Ork Den Unlock
+    description: "You Can Build Ork Den (Give Gold for every 5 kills)\t"
+    icon: {fileID: 0}
+    maxLevel: 1
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites: []
+    effectType: 0
+    effectValuePerLevel: 0
+    fixedCostPerLevel: 2
+    minCharacterLevel: 10
+  - id: Ork_Den_Boost
+    displayName: Ork Den Boost
+    description: "+1 Gold / 5 kills (Give Gold for every 5 kills)\t"
+    icon: {fileID: 0}
+    maxLevel: 1
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites: []
+    effectType: 0
+    effectValuePerLevel: 0
+    fixedCostPerLevel: 3
+    minCharacterLevel: 10

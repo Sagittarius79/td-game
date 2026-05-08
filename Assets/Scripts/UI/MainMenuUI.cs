@@ -22,6 +22,12 @@ public class MainMenuUI : MonoBehaviour
     [Header("Navigáció")]
     public Button characterSelectButton;
 
+    [Header("Google fiók")]
+    [Tooltip("Kijelentkezés gomb – csak bejelentkezett állapotban interakcióképes")]
+    public Button logoutButton;
+    [Tooltip("Opcionális: bejelentkezett user neve/emailje a gomb mellett")]
+    public TMP_Text loggedInLabel;
+
     private CharacterEntryUI _activeCard;
 
     // ── Életciklus ────────────────────────────────────────────────
@@ -31,12 +37,20 @@ public class MainMenuUI : MonoBehaviour
         if (characterSelectButton != null)
             characterSelectButton.onClick.AddListener(OnCharacterSelectPressed);
 
+        if (logoutButton != null)
+            logoutButton.onClick.AddListener(OnLogoutPressed);
+
         // Bejelentkezési képernyő ha szükséges
         LoginUI.Instance?.ShowIfNeeded();
 
         // Feliratkozások
         if (GoogleAuthManager.Instance != null)
+        {
             GoogleAuthManager.Instance.OnSignInSuccess += OnSignedIn;
+            GoogleAuthManager.Instance.OnSignedOut    += OnSignedOut;
+        }
+
+        RefreshLoginUI();
 
         if (UserProgressManager.Instance != null)
             UserProgressManager.Instance.OnXPChanged += OnXPChanged;
@@ -48,7 +62,10 @@ public class MainMenuUI : MonoBehaviour
     void OnDestroy()
     {
         if (GoogleAuthManager.Instance != null)
+        {
             GoogleAuthManager.Instance.OnSignInSuccess -= OnSignedIn;
+            GoogleAuthManager.Instance.OnSignedOut    -= OnSignedOut;
+        }
 
         if (UserProgressManager.Instance != null)
             UserProgressManager.Instance.OnXPChanged -= OnXPChanged;
@@ -108,6 +125,35 @@ public class MainMenuUI : MonoBehaviour
     void OnSignedIn(string userId, string displayName, string email)
     {
         RefreshCharacterCard();
+        RefreshLoginUI();
+    }
+
+    void OnSignedOut()
+    {
+        if (_activeCard != null) Destroy(_activeCard.gameObject);
+        RefreshLoginUI();
+        LoginUI.Instance?.Show();
+    }
+
+    public void OnLogoutPressed()
+    {
+        if (GoogleAuthManager.Instance == null) return;
+        GoogleAuthManager.Instance.SignOut();
+    }
+
+    void RefreshLoginUI()
+    {
+        bool signedIn = GoogleAuthManager.Instance != null && GoogleAuthManager.Instance.IsSignedIn;
+
+        if (logoutButton != null)
+            logoutButton.interactable = signedIn;
+
+        if (loggedInLabel != null)
+        {
+            loggedInLabel.gameObject.SetActive(signedIn);
+            if (signedIn)
+                loggedInLabel.text = GoogleAuthManager.Instance.DisplayName;
+        }
     }
 
     void OnXPChanged(long gained, long total)

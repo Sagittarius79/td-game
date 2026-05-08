@@ -27,10 +27,11 @@ MonoBehaviour:
     - Unlock_archer_lvl2
     effectType: 1
     effectValuePerLevel: 2
+    fixedCostPerLevel: 0
   - id: Multi_shoot
     displayName: MultiShoot
     description: Added increases the chance of shooting more targets at once by 1%
-      / point
+      / SKILL
     icon: {fileID: 0}
     maxLevel: 40
     costPerLevel: 1
@@ -40,9 +41,10 @@ MonoBehaviour:
     - crit_hit_chance
     effectType: 2
     effectValuePerLevel: 1
+    fixedCostPerLevel: 0
   - id: armor_pierce
     displayName: Armor Pierce
-    description: Every shots reduces the armor by 0.1 / point
+    description: Every shots reduces the armor by 0.1 / SKILL
     icon: {fileID: 0}
     maxLevel: 30
     costPerLevel: 1
@@ -52,9 +54,10 @@ MonoBehaviour:
     - crit_hit_chance
     effectType: 3
     effectValuePerLevel: 0.1
+    fixedCostPerLevel: 0
   - id: Range_1
-    displayName: Range
-    description: Extend range of all Archer by 0.05 / point
+    displayName: Range Extend
+    description: Extend range of Archer Lvl2 by 0.05 / SKILL
     icon: {fileID: 0}
     maxLevel: 50
     costPerLevel: 1
@@ -64,6 +67,7 @@ MonoBehaviour:
     - crit_hit_chance
     effectType: 10
     effectValuePerLevel: 0.05
+    fixedCostPerLevel: 0
   - id: Stun_1
     displayName: Stun by the Eagle
     description: Give Stun chance to Lvl2 Archer Tower by 0.5% / point
@@ -76,3 +80,4 @@ MonoBehaviour:
     - crit_hit_chance
     effectType: 5
     effectValuePerLevel: 0.5
+    fixedCostPerLevel: 0

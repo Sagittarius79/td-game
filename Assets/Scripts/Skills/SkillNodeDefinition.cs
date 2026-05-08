@@ -43,14 +43,22 @@ public class SkillNodeDefinition
     [Tooltip("Mennyit ad hozzá szintenként (pl. 1 = 1% / szint)")]
     public float effectValuePerLevel = 0f;
 
+    [Tooltip("Fix skill pont költség szintenként. Ha 0, az alapértelmezett képlet érvényes: floor((szint+1)/2), min. 1.")]
+    public int fixedCostPerLevel = 0;
+
+    [Tooltip("Minimális karakter szint a skill fejlesztéséhez (alapból 1)")]
+    public int minCharacterLevel = 1;
+
     /// <summary>Teljes hatás az adott szinten (szint × érték/szint).</summary>
     public float GetTotalEffect(int level) => level * effectValuePerLevel;
 
     /// <summary>
     /// Mennyibe kerül a következő szint elérése az aktuális szintről.
-    /// Képlet: floor((currentLevel + 1) / 2), minimum 1.
-    /// Példák: 0→1 = 1, 4→5 = 2, 5→6 = 3, 7→8 = 4, 8→9 = 4
+    /// Ha fixedCostPerLevel > 0, azt adja vissza minden szinten.
+    /// Egyébként: floor((currentLevel + 1) / 2), minimum 1.
     /// </summary>
-    public static int GetUpgradeCost(int currentLevel) =>
-        Mathf.Max(1, Mathf.FloorToInt((currentLevel + 1) / 2f));
+    public int GetUpgradeCost(int currentLevel) =>
+        fixedCostPerLevel > 0
+            ? fixedCostPerLevel
+            : Mathf.Max(1, Mathf.FloorToInt(currentLevel / 2f));
 }

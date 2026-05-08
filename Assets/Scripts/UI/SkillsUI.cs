@@ -25,10 +25,19 @@ public class SkillsUI : MonoBehaviour
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
+
+        var panel = skillsPanel != null ? skillsPanel : transform.parent?.gameObject;
+        panel?.SetActive(false);
     }
 
     void Start()
     {
+        if (PlayerPrefs.GetInt("OpenSkillsPanel", 0) == 1)
+        {
+            PlayerPrefs.DeleteKey("OpenSkillsPanel");
+            Show();
+        }
+
         if (archerButton     != null) archerButton.onClick.AddListener(OnArcherPressed);
         if (archerLvl2Button != null) archerLvl2Button.onClick.AddListener(OnArcherLvl2Pressed);
         if (stoneButton      != null) stoneButton.onClick.AddListener(OnStonePressed);
@@ -36,8 +45,6 @@ public class SkillsUI : MonoBehaviour
         if (magicButton      != null) magicButton.onClick.AddListener(OnMagicPressed);
         if (magicButtonLvl2  != null) magicButtonLvl2.onClick.AddListener(OnMagicLvl2Pressed);
         if (backButton       != null) backButton.onClick.AddListener(Hide);
-
-        if (skillsPanel != null) skillsPanel.SetActive(false);
     }
 
     // ── Megjelenítés ──────────────────────────────────────────────────

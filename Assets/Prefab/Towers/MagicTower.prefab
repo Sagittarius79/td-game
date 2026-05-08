@@ -38,7 +38,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0.706}
-  m_SizeDelta: {x: 688.31, y: 66.9}
+  m_SizeDelta: {x: 1030.4, y: 104.1}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!223 &8636498096194956175
 Canvas:
@@ -256,6 +256,7 @@ MonoBehaviour:
   armor: 1
   magicResist: 1
   isLvl2: 0
+  priceSkillTree: {fileID: 0}
   towerRenderer: {fileID: 0}
   rangeCircle: {fileID: 0}
   flipToFaceTarget: 0
@@ -373,8 +374,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 198.03}
-  m_SizeDelta: {x: 200, y: 50}
+  m_AnchoredPosition: {x: 0, y: 269}
+  m_SizeDelta: {x: 400, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &936596446855112722
 CanvasRenderer:
@@ -431,7 +432,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 44.75
+  m_fontSize: 72
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -602,6 +603,7 @@ MonoBehaviour:
   armor: 1
   magicResist: 1
   isLvl2: 0
+  priceSkillTree: {fileID: 11400000, guid: c8b7b31e229375b4b994430b03efad87, type: 2}
   towerRenderer: {fileID: 8906538239707145985}
   rangeCircle: {fileID: 2278186780095670801}
   flipToFaceTarget: 0

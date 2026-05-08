@@ -29,6 +29,10 @@ public class SkillNodeUI : MonoBehaviour
     public Color colorLocked    = new Color(0.3f, 0.3f, 0.3f);   // szürke
     public Color colorMaxed     = new Color(1.0f, 0.8f, 0.0f);   // arany
 
+    [Header("Hangok")]
+    [Tooltip("Lejátssza amikor skill pontot oszt (véletlenszerűen választ közülük)")]
+    public AudioClip[] upgradeSounds;
+
     [Header("Node azonosító")]
     [Tooltip("Pontosan egyezzen a SkillTreeDefinition-ban lévő id-val")]
     public string nodeId = "";
@@ -104,8 +108,10 @@ public class SkillNodeUI : MonoBehaviour
         {
             if (isMaxed)
                 costText.text = "MAX";
+            else if (mgr != null && mgr.Level < _definition.minCharacterLevel)
+                costText.text = $"Lvl {_definition.minCharacterLevel} required";
             else
-                costText.text = $"Cost: {SkillNodeDefinition.GetUpgradeCost(currentLevel)}";
+                costText.text = $"Cost: {_definition.GetUpgradeCost(currentLevel)}";
         }
 
         // Gomb státusz
@@ -126,6 +132,8 @@ public class SkillNodeUI : MonoBehaviour
     {
         if (UserProgressManager.Instance?.UpgradeSkill(_definition.id, _tree) == true)
         {
+            if (upgradeSounds != null && upgradeSounds.Length > 0)
+                AudioManager.Instance?.PlaySFX(upgradeSounds[UnityEngine.Random.Range(0, upgradeSounds.Length)]);
             VibrationHelper.VibrateShort();
             Refresh();
             _onUpgraded?.Invoke();

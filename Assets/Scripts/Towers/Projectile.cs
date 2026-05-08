@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 /// <summary>
 /// ═══════════════════════════════════════════════════════
@@ -15,6 +16,53 @@ public class Projectile : MonoBehaviour
     // ══════════════════════════════════════════════════════
     //  INSPECTOR MEZŐK
     // ══════════════════════════════════════════════════════
+
+    [Header("Azonosítás")]
+    [Tooltip("Lövedék azonosító tag – az ellenség immunitás listájában ez szerepelhet (pl. Arrow, Magic, Poison)")]
+    public string projectileTag = "";
+
+    [Header("Áthatolás (Pierce)")]
+    [Tooltip("Ha > 0, a lövedék ennyi extra ellenségen hatol át a célpont után")]
+    public int pierceCount = 0;
+
+    [Header("Javelin")]
+    [Tooltip("Ha be van kapcsolva, ez a lövedék crit-elhet a Javelin Crit Chance skill alapján")]
+    public bool javelinCanCrit = false;
+    [Tooltip("Javelin crit esetén a sebzés hány %-a legyen (pl. 200 = dupla sebzés)")]
+    public float javelinCritDamagePercent = 200f;
+
+    [Header("Prisma")]
+    [Tooltip("Ha be van kapcsolva, a PrismaDamageBonus skill érvényes erre a lövedékre")]
+    public bool prismaDmgBonus = false;
+    [Tooltip("Ha be van kapcsolva, a PrismaRange skill érvényes erre a lövedékre")]
+    public bool prismaRangeBonus = false;
+    [Tooltip("Ha be van kapcsolva, ez a lövedék részt vesz az Element Changer mechanikában")]
+    public bool prismaElementChanger = false;
+    [Tooltip("Hány lövésenként aktiválódik az elementális bónusz (skill pont nélkül)")]
+    public int prismaElementBaseInterval = 10;
+    [Tooltip("Az elementális bónusz sebzés mértéke (a normál damage %-a, pl. 100 = ugyanannyi)")]
+    public float prismaElementDamagePercent = 50f;
+
+    [Tooltip("Ha be van kapcsolva, ez a lövedék részt vesz a Bounce mechanikában")]
+    public bool prismaBounce = false;
+    [Tooltip("Maximum hány alkalommal pattanhat a lövedék (skill növeli)")]
+    public int prismaMaxBounces = 1;
+    [Tooltip("Alap pattanási esély %-ban, armor nélkül is megvan (pl. 10 = mindig 10% esély)")]
+    public float prismaBounceBaseChance = 0f;
+    [Tooltip("1 armor pont ennyi %-ot ad a pattanási esélyhez (pl. 10 = 1 armor → +10%)")]
+    public float prismaBounceChancePerArmor = 10f;
+    [Tooltip("Maximum pattanási esély %-ban (pl. 80 = max 80%)")]
+    public float prismaBounceMaxChance = 80f;
+
+    // PrismaTower állítja be lövéskor – ne módosítsd kézzel
+    [HideInInspector] public bool  prismaElementActive   = false;
+    [HideInInspector] public float prismaBounceSkillBonus = 0f;
+    [HideInInspector] public float prismaBounceRange    = 0f;
+    [HideInInspector] public int   prismaBouncesLeft    = 0;
+
+    [Header("Célzás")]
+    [Tooltip("Ha be van kapcsolva, ez a lövedék el tudja találni a repülő ellenségeket is")]
+    public bool canHitFlying = false;
 
     [Header("Mozgás")]
     [Tooltip("Repülési sebesség")]
@@ -39,6 +87,18 @@ public class Projectile : MonoBehaviour
     public float pullForce = 3f;
     [Tooltip("Meddig tart a pull hatás (másodperc)")]
     public float pullDuration = 0.4f;
+
+    [Header("Méreg (DoT)")]
+    [Tooltip("Ha be van kapcsolva, találatkor mérgezést alkalmaz a célponton")]
+    public bool applyPoison = false;
+    [Tooltip("Méreg sebzés másodpercenként (stack-enként)")]
+    public float poisonDamagePerSecond = 1f;
+    [Tooltip("Egy stack időtartama másodpercben")]
+    public float poisonDuration = 5f;
+    [Tooltip("Maximum hány poison stack lehet egyszerre a szörnyön (1 stack = 1 DMG/sec)")]
+    public int maxPoisonStacks = 3;
+    [Tooltip("Opcionális méreg VFX prefab – a PoisonEffect spawnolhatja az ellenségen")]
+    public GameObject poisonVfxPrefab;
 
     [Header("Égés (DoT)")]
     [Tooltip("Ha be van kapcsolva, találatkor égést alkalmaz a célponton")]
@@ -117,6 +177,9 @@ public class Projectile : MonoBehaviour
     private float      armorPierce         = 0f;
     private float      stunChance          = 0f;
     private float      trapChance          = 0f;
+    private int        _pierceRemaining    = 0;
+    private List<Enemy> _pierceHit         = new List<Enemy>();
+    public float       javelinActiveCritChance = 0f;
 
     private bool hasHit = false;
     private float lifetimeTimer = 0f;
@@ -133,12 +196,14 @@ public class Projectile : MonoBehaviour
                            float armorPierce = 0f, float stunChance = 0f, float trapChance = 0f,
                            float aoeDamage = 0f, float magicDamage = 0f)
     {
-        this.target       = target;
-        this.damage       = damage;
-        this.aoeDamage    = aoeDamage;
-        this.magicDamage  = magicDamage;
-        this.isAreaDamage = isAreaDamage;
-        this.areaRadius   = areaRadius;
+        this.target          = target;
+        this.damage          = damage;
+        this.aoeDamage       = aoeDamage;
+        this.magicDamage     = magicDamage;
+        this.isAreaDamage    = isAreaDamage;
+        this.areaRadius      = areaRadius;
+        _pierceRemaining     = pierceCount;
+        _pierceHit.Clear();
         this.damageType   = damageType;
         this.critChance   = critChance;
         this.armorPierce  = armorPierce;
@@ -192,6 +257,22 @@ public class Projectile : MonoBehaviour
     //  BECSAPÓDÁS
     // ══════════════════════════════════════════════════════
 
+    bool IsImmune(Enemy enemy)
+    {
+        if (string.IsNullOrEmpty(projectileTag)) return false;
+        bool immune = enemy.immuneToProjectileTags != null &&
+                      enemy.immuneToProjectileTags.Contains(projectileTag);
+        if (immune) ShowImmuneText(enemy);
+        return immune;
+    }
+
+    void ShowImmuneText(Enemy enemy)
+    {
+        if (enemy.floatingDamageTextPrefab == null) return;
+        var go = Instantiate(enemy.floatingDamageTextPrefab, enemy.transform.position, Quaternion.identity);
+        go.GetComponent<FloatingDamageText>()?.InitializeImmune();
+    }
+
     void Impact()
     {
         if (hasHit) return;
@@ -216,15 +297,16 @@ public class Projectile : MonoBehaviour
         if (isAreaDamage && aoeDamage > 0f)
         {
             // Közvetlen találat → damage
-            if (target != null && !target.IsDead)
+            if (target != null && !target.IsDead && !IsImmune(target))
             {
                 bool  isCrit      = critChance > 0f && Random.value < critChance;
                 float finalDamage = isCrit ? damage * (critDamagePercent / 100f) : damage;
                 if (canDestroyArmor && armorPierce > 0f) target.ReduceArmor(armorPierce);
-                if (canStun && stunChance > 0f && Random.value < stunChance) target.ApplyStun(stunDuration);
+                if (canStun && stunChance > 0f && Random.value < stunChance) { target.ApplyStun(stunDuration); ShowStunText(target); }
                 target.TakeDamage(finalDamage, damageType, isCrit);
                 if (magicDamage > 0f) target.TakeDamage(magicDamage, DamageType.Magic);
                 ApplyBurning(target);
+                ApplyPoison(target);
                 if (teleportOnHit) target.TeleportToStart();
             }
             // Körülötte lévők → aoeDamage (közvetlen célpont kihagyva)
@@ -236,32 +318,45 @@ public class Projectile : MonoBehaviour
             bool  isCrit      = critChance > 0f && Random.value < critChance;
             float finalDamage = isCrit ? damage * (critDamagePercent / 100f) : damage;
 
-            if (target != null && !target.IsDead)
+            if (target != null && !target.IsDead && !IsImmune(target))
             {
                 if (canDestroyArmor && armorPierce > 0f) target.ReduceArmor(armorPierce);
-                if (canStun && stunChance > 0f && Random.value < stunChance) target.ApplyStun(stunDuration);
+                if (canStun && stunChance > 0f && Random.value < stunChance) { target.ApplyStun(stunDuration); ShowStunText(target); }
                 target.TakeDamage(finalDamage, damageType, isCrit);
                 if (magicDamage > 0f) target.TakeDamage(magicDamage, DamageType.Magic);
                 ApplyBurning(target);
+                ApplyPoison(target);
                 if (teleportOnHit) target.TeleportToStart();
             }
             // Splash ellenségek – közvetlen célpont kizárva, alap damage
             ApplyAreaDamage(damage, target);
         }
-        else if (target != null && !target.IsDead)
+        else if (target != null && !target.IsDead && !IsImmune(target))
         {
-            bool  isCrit      = critChance > 0f && Random.value < critChance;
-            float finalDamage = isCrit ? damage * (critDamagePercent / 100f) : damage;
+            bool isCrit;
+            float finalDamage;
+            if (javelinCanCrit && javelinActiveCritChance > 0f)
+            {
+                isCrit      = Random.value < javelinActiveCritChance;
+                finalDamage = isCrit ? damage * (javelinCritDamagePercent / 100f) : damage;
+            }
+            else
+            {
+                isCrit      = critChance > 0f && Random.value < critChance;
+                finalDamage = isCrit ? damage * (critDamagePercent / 100f) : damage;
+            }
 
             if (canDestroyArmor && armorPierce > 0f)
                 target.ReduceArmor(armorPierce);
 
-            if (canStun && stunChance > 0f && Random.value < stunChance)
-                target.ApplyStun(stunDuration);
+            if (canStun && stunChance > 0f && Random.value < stunChance) { target.ApplyStun(stunDuration); ShowStunText(target); }
 
             target.TakeDamage(finalDamage, damageType, isCrit);
             if (magicDamage > 0f) target.TakeDamage(magicDamage, DamageType.Magic);
             ApplyBurning(target);
+            ApplyPoison(target);
+            ApplyPrismaElement(target);
+            ApplyPrismaBounce(target);
 
             if (teleportOnHit)
                 target.TeleportToStart();
@@ -275,12 +370,44 @@ public class Projectile : MonoBehaviour
             }
         }
 
-        if (pullOnHit) ApplyPull();
+        if (pullOnHit) ApplyPull(target);
+
+        // Pierce: ha van még áthatolás, keresünk új célt
+        if (_pierceRemaining > 0 && target != null)
+        {
+            _pierceHit.Add(target);
+            Enemy nextTarget = FindNextPierceTarget();
+            if (nextTarget != null)
+            {
+                _pierceRemaining--;
+                target  = nextTarget;
+                hasHit  = false;
+                return;
+            }
+        }
 
         Destroy(gameObject);
     }
 
-    void ApplyPull()
+    Enemy FindNextPierceTarget()
+    {
+        Enemy closest = null;
+        float closestDist = float.MaxValue;
+        foreach (var e in Enemy.AllEnemies)
+        {
+            if (e == null || e.IsDead) continue;
+            if (_pierceHit.Contains(e)) continue;
+            float dist = Vector3.Distance(transform.position, e.transform.position);
+            if (dist < closestDist)
+            {
+                closestDist = dist;
+                closest     = e;
+            }
+        }
+        return closest;
+    }
+
+    void ApplyPull(Enemy excludeTarget)
     {
         if (GridManager.Instance == null) return;
         float worldRadius = pullRadius *
@@ -290,6 +417,7 @@ public class Projectile : MonoBehaviour
         foreach (var enemy in Enemy.AllEnemies)
         {
             if (enemy == null || enemy.IsDead) continue;
+            if (enemy == excludeTarget) continue;   // közvetlen célpont kihagyása
             if (Vector3.Distance(center, enemy.transform.position) <= worldRadius)
                 enemy.ApplyPull(center, pullForce, pullDuration);
         }
@@ -352,6 +480,96 @@ public class Projectile : MonoBehaviour
         }
     }
 
+    // ══════════════════════════════════════════════════════
+    //  PRISMA ELEMENTÁLIS SEBZÉS
+    // ══════════════════════════════════════════════════════
+
+    void ApplyPrismaBounce(Enemy hitEnemy)
+    {
+        if (!prismaBounce || prismaBounceSkillBonus < 1f) return;
+        if (hitEnemy == null || hitEnemy.IsDead) return;
+        if (prismaBouncesLeft <= 0) return;
+
+        // Esély: alap + armor × chancePerArmor%, maximum maxChance%
+        float bounceChance = Mathf.Min(prismaBounceMaxChance, prismaBounceBaseChance + hitEnemy.armor * prismaBounceChancePerArmor) / 100f;
+        if (Random.value > bounceChance) return;
+
+        // Véletlenszerű élő ellenség a találat pontjától range-en belül
+        var candidates = new List<Enemy>();
+        foreach (var e in Enemy.AllEnemies)
+        {
+            if (e == null || e.IsDead || e == hitEnemy) continue;
+            float dist = Vector3.Distance(hitEnemy.transform.position, e.transform.position);
+            if (dist <= prismaBounceRange) candidates.Add(e);
+        }
+
+        if (candidates.Count == 0) return;
+        Enemy bounceTarget = candidates[Random.Range(0, candidates.Count)];
+
+        if (bounceTarget == null) return;
+
+        // Új lövedék spawnolása – átadjuk a maradék bounce számot
+        var go = Instantiate(gameObject, hitEnemy.transform.position, Quaternion.identity);
+        var p  = go.GetComponent<Projectile>();
+        if (p != null)
+        {
+            p.prismaBouncesLeft   = prismaBouncesLeft - 1;
+            p.prismaBounceSkillBonus = prismaBounceSkillBonus;
+            p.prismaBounceRange   = prismaBounceRange;
+            p.Initialize(bounceTarget, damage, false, 0f, damageType);
+        }
+        else
+        {
+            bounceTarget.TakeDamage(damage, damageType);
+        }
+    }
+
+    void ApplyPrismaElement(Enemy enemy)
+    {
+        if (!prismaElementChanger || !prismaElementActive) return;
+        if (enemy == null || enemy.IsDead) return;
+
+        float elementDmg = damage * (prismaElementDamagePercent / 100f);
+
+        // Véletlenszerű sebzés típus kiválasztása – csak a típus változik, nincs DoT
+        int roll = Random.Range(0, 3);
+        DamageType elementType = roll == 0 ? DamageType.Fire
+                               : roll == 1 ? DamageType.Poison
+                               : DamageType.Physical;
+
+        enemy.TakeDamage(elementDmg, elementType);
+    }
+
+    // ══════════════════════════════════════════════════════
+    //  STUN SZÖVEG
+    // ══════════════════════════════════════════════════════
+
+    void ShowStunText(Enemy enemy)
+    {
+        if (enemy.floatingDamageTextPrefab == null) return;
+        var go = Instantiate(enemy.floatingDamageTextPrefab, enemy.transform.position, Quaternion.identity);
+        go.GetComponent<FloatingDamageText>()?.InitializeStun();
+    }
+
+    // ══════════════════════════════════════════════════════
+    //  MÉREG
+    // ══════════════════════════════════════════════════════
+
+    void ApplyPoison(Enemy directTarget)
+    {
+        if (!applyPoison) return;
+        if (directTarget == null || directTarget.IsDead) return;
+
+        var existing = directTarget.GetComponent<PoisonEffect>();
+        if (existing != null)
+            existing.AddStack(poisonDamagePerSecond, poisonDuration, maxPoisonStacks);
+        else
+        {
+            var poison = directTarget.gameObject.AddComponent<PoisonEffect>();
+            poison.Initialize(poisonDamagePerSecond, poisonDuration, maxPoisonStacks, poisonVfxPrefab);
+        }
+    }
+
     void ApplyAreaDamage(float dmgAmount, Enemy excludeTarget)
     {
         float worldRadius = areaRadius * (GridManager.Instance.tileWidth + GridManager.Instance.tileHeight) * 0.5f;
@@ -361,7 +579,8 @@ public class Projectile : MonoBehaviour
         foreach (var enemy in enemies)
         {
             if (enemy.IsDead) continue;
-            if (enemy == excludeTarget) continue;   // közvetlen célpont kihagyása
+            if (enemy == excludeTarget) continue;
+            if (IsImmune(enemy)) continue;
             float dist = Vector3.Distance(transform.position, enemy.transform.position);
             if (dist <= worldRadius)
             {

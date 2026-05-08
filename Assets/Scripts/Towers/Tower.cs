@@ -80,6 +80,10 @@ public abstract class Tower : MonoBehaviour
              "Ha ki van kapcsolva (Lvl1), dekorált cellára nem lehet lerakni.")]
     public bool isLvl2 = false;
 
+    [Header("Skill Tree árhatás")]
+    [Tooltip("Ha meg van adva, minden ebbe a fába elköltött skill pont 1%-al emeli a torony árát.")]
+    public SkillTreeDefinition priceSkillTree = null;
+
     [Header("Vizuális")]
     public SpriteRenderer towerRenderer;
     [Tooltip("Hatótávolság jelző kör (opcionális) – kiválasztáskor jelenik meg")]
@@ -119,6 +123,17 @@ public abstract class Tower : MonoBehaviour
     void OnEnable()
     {
         allTowers.Add(this);
+
+        // BuildingHPExtra skill bónusz hozzáadása a max HP-hoz
+        var buildingsCfg = BuildingsConfig.Instance ?? FindObjectOfType<BuildingsConfig>();
+        if (buildingsCfg != null && buildingsCfg.buildingsSkillTree != null &&
+            UserProgressManager.Instance != null)
+        {
+            float bonus = UserProgressManager.Instance.GetTotalSkillEffect(
+                SkillEffectType.BuildingHPExtra, buildingsCfg.buildingsSkillTree);
+            maxHealth += bonus;
+        }
+
         _currentHealth = maxHealth;
         if (healthBarRoot != null)
         {
@@ -193,9 +208,16 @@ public abstract class Tower : MonoBehaviour
 
         if (_currentHealth <= 0f)
         {
-            GridManager.Instance?.SetEmpty(gridCell);
+            GridManager.Instance?.PlaceRubble(gridCell);
             Destroy(gameObject);
         }
+    }
+
+    public void Heal(float amount)
+    {
+        if (IsDead) return;
+        _currentHealth = Mathf.Min(maxHealth, _currentHealth + amount);
+        UpdateHealthBar();
     }
 
     void UpdateHealthBar()
@@ -253,7 +275,7 @@ public abstract class Tower : MonoBehaviour
     //  UPDATE – célzás és lövés
     // ══════════════════════════════════════════════════════
 
-    void Update()
+    protected virtual void Update()
     {
         if (GameManager.Instance.IsGameOver) return;
 
@@ -314,7 +336,7 @@ public abstract class Tower : MonoBehaviour
     /// </summary>
     protected virtual float GetChargeDamageBonus()    => 0f;
 
-    bool IsInRange(Enemy enemy)
+    protected bool IsInRange(Enemy enemy)
     {
         float rangeWorld = GetEffectiveRange() * (GridManager.Instance.tileWidth + GridManager.Instance.tileHeight) * 0.5f;
         return Vector3.Distance(transform.position, enemy.transform.position) <= rangeWorld;
@@ -324,9 +346,14 @@ public abstract class Tower : MonoBehaviour
     /// A targetingMode alapján választja ki a legjobb célpontot
     /// a hatótávolságon belüli élő ellenségek közül.
     /// </summary>
-    Enemy FindBestTarget()
+    protected Enemy FindBestTarget()
     {
         float rangeWorld = GetEffectiveRange() * (GridManager.Instance.tileWidth + GridManager.Instance.tileHeight) * 0.5f;
+
+        // Meghatározzuk, hogy ez a torony tud-e repülőt célozni (projektil alapján)
+        bool projCanHitFlying = projectilePrefab != null &&
+                                projectilePrefab.GetComponent<Projectile>() is Projectile p &&
+                                p.canHitFlying;
 
         // Alapértelmezett: az első hatótávon belüli élő ellenség
         if (targetingMode == TargetingMode.Alapertelmezett)
@@ -334,6 +361,7 @@ public abstract class Tower : MonoBehaviour
             foreach (var enemy in Enemy.AllEnemies)
             {
                 if (enemy.IsDead) continue;
+                if (enemy.isFlying && !projCanHitFlying) continue;
                 if (Vector3.Distance(transform.position, enemy.transform.position) <= rangeWorld)
                     return enemy;
             }
@@ -346,6 +374,7 @@ public abstract class Tower : MonoBehaviour
         foreach (var enemy in Enemy.AllEnemies)
         {
             if (enemy.IsDead) continue;
+            if (enemy.isFlying && !projCanHitFlying) continue;
             float distToTower = Vector3.Distance(transform.position, enemy.transform.position);
             if (distToTower > rangeWorld) continue;
 
@@ -381,7 +410,7 @@ public abstract class Tower : MonoBehaviour
     /// <summary>Kisebb érték = jobb célpont.</summary>
     bool IsBetterValue(float newValue, float currentBest) => newValue < currentBest;
 
-    void FaceTarget(Vector3 targetPos)
+    protected void FaceTarget(Vector3 targetPos)
     {
         if (towerRenderer == null || !flipToFaceTarget) return;
         towerRenderer.flipX = targetPos.x < transform.position.x;

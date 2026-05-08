@@ -5,5 +5,6 @@ public enum DamageType
 {
     Physical,
     Magic,
-    Fire
+    Fire,
+    Poison
 }

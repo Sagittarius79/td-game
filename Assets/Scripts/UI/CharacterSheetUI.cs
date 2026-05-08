@@ -81,7 +81,7 @@ public class CharacterSheetUI : MonoBehaviour
             characterNameText.text = data.characterName;
 
         if (levelText != null)
-            levelText.text = $"{level}. Szint";
+            levelText.text = $"Lvl. {level}";
 
         if (googleNameText != null)
         {

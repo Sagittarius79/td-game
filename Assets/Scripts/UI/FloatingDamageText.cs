@@ -72,6 +72,33 @@ public class FloatingDamageText : MonoBehaviour
         color       = new Color(1f, 0.25f, 0f)      // tűznarancs
     };
 
+    public DamageTextStyle poisonStyle = new DamageTextStyle
+    {
+        fontSize    = 4f,
+        spawnOffset = new Vector3(-0.2f, -0.9f, 0f),
+        riseSpeed   = 1.1f,
+        lifetime    = 1f,
+        color       = new Color(0.2f, 0.85f, 0.2f)  // zöld
+    };
+
+    public DamageTextStyle immuneStyle = new DamageTextStyle
+    {
+        fontSize    = 4f,
+        spawnOffset = new Vector3(0f, -0.5f, 0f),
+        riseSpeed   = 1.3f,
+        lifetime    = 1f,
+        color       = new Color(0.7f, 0.7f, 0.7f)   // szürke
+    };
+
+    public DamageTextStyle stunStyle = new DamageTextStyle
+    {
+        fontSize    = 5f,
+        spawnOffset = new Vector3(0f, -0.5f, 0f),
+        riseSpeed   = 1.5f,
+        lifetime    = 1.2f,
+        color       = new Color(0.4f, 0.6f, 1f)    // kék (stun szín)
+    };
+
     public DamageTextStyle armorReduceStyle = new DamageTextStyle
     {
         fontSize    = 3f,
@@ -143,9 +170,10 @@ public class FloatingDamageText : MonoBehaviour
         _tmp = GetComponent<TextMeshPro>();
         if (_tmp == null) return;
 
-        DamageTextStyle style = isCrit                          ? critStyle
-                              : damageType == DamageType.Magic  ? magicStyle
-                              : damageType == DamageType.Fire   ? fireStyle
+        DamageTextStyle style = isCrit                           ? critStyle
+                              : damageType == DamageType.Magic   ? magicStyle
+                              : damageType == DamageType.Fire    ? fireStyle
+                              : damageType == DamageType.Poison  ? poisonStyle
                               : physicalStyle;
 
         ApplyStyle(style);
@@ -159,6 +187,27 @@ public class FloatingDamageText : MonoBehaviour
             dmgStr += $" ({Mathf.RoundToInt(resist)} resist)";
 
         _tmp.text = dmgStr;
+    }
+
+    /// <summary>
+    /// Projectile hívja stun alkalmazásakor.
+    /// </summary>
+    public void InitializeImmune()
+    {
+        _tmp = GetComponent<TextMeshPro>();
+        if (_tmp == null) return;
+
+        ApplyStyle(immuneStyle);
+        _tmp.text = "IMMUNE";
+    }
+
+    public void InitializeStun()
+    {
+        _tmp = GetComponent<TextMeshPro>();
+        if (_tmp == null) return;
+
+        ApplyStyle(stunStyle);
+        _tmp.text = "STUN";
     }
 
     /// <summary>

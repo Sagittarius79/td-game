@@ -22,7 +22,24 @@ public class GoldMine : MonoBehaviour
     [Tooltip("Milyen gyakran termeljen (másodperc)")]
     public float tickInterval = 1f;
 
-    private float _timer = 0f;
+    [Header("Skill fa")]
+    [Tooltip("A Buildings skill tree ScriptableObject")]
+    public SkillTreeDefinition buildingsSkillTree;
+
+    private float _timer    = 0f;
+    private int   _effectiveGoldPerTick;
+
+    void Start()
+    {
+        _effectiveGoldPerTick = goldPerTick;
+
+        if (buildingsSkillTree != null && UserProgressManager.Instance != null)
+        {
+            int bonus = Mathf.RoundToInt(UserProgressManager.Instance.GetTotalSkillEffect(
+                SkillEffectType.GoldMineBoost, buildingsSkillTree));
+            _effectiveGoldPerTick += bonus;
+        }
+    }
 
     void Update()
     {
@@ -33,7 +50,7 @@ public class GoldMine : MonoBehaviour
         if (_timer >= tickInterval)
         {
             _timer -= tickInterval;
-            GameManager.Instance.AddGold(goldPerTick);
+            GameManager.Instance.AddGold(_effectiveGoldPerTick);
         }
     }
 }

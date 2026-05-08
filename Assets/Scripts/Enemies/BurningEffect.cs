@@ -35,7 +35,27 @@ public class BurningEffect : MonoBehaviour
         _tickAccum       = 0f;
 
         if (vfxPrefab != null)
+        {
             _activeVfx = Instantiate(vfxPrefab, transform.position, Quaternion.identity, transform);
+
+            var sr = GetComponent<SpriteRenderer>();
+            if (sr != null)
+            {
+                float spriteHeight = sr.bounds.size.y;
+                float spriteWidth  = sr.bounds.size.x;
+
+                Vector3 offset = _enemy != null ? _enemy.fireVfxOffset : Vector3.zero;
+                float   scale  = _enemy != null ? _enemy.fireVfxScale  : 1f;
+
+                _activeVfx.transform.localPosition = new Vector3(
+                    offset.x,
+                    spriteHeight * 0.5f + offset.y,
+                    offset.z);
+
+                float finalScale = spriteWidth * scale;
+                _activeVfx.transform.localScale = new Vector3(finalScale, finalScale, finalScale);
+            }
+        }
     }
 
     /// <summary>Ha az ellenség újra kap tűzsebzést, az időzítő resetelődik.</summary>

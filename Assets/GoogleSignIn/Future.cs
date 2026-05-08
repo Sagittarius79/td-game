@@ -1,3 +1,4 @@
+#if !UNITY_WEBGL
 ﻿// <copyright file="Future.cs" company="Google Inc.">
 // Copyright (C) 2017 Google Inc. All Rights Reserved.
 //
@@ -82,3 +83,5 @@ namespace Google {
     }
   }
 }
+
+#endif // !UNITY_WEBGL

@@ -19,7 +19,7 @@ GameObject:
   - component: {fileID: 7535614824029906738}
   m_Layer: 0
   m_Name: Shield Berrier
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -89,7 +89,7 @@ SpriteRenderer:
   m_SortingLayer: 5
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -8719172576817169579, guid: 20dcd0fce570e9c459a0a7289f0b0da1, type: 3}
+  m_Sprite: {fileID: -5372809194821488471, guid: 7f0130313685ede4ca1bebabd478c7ff, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -119,10 +119,20 @@ MonoBehaviour:
   spriteRenderer: {fileID: 2372702782504723514}
   deathEffect: {fileID: 0}
   healthBarRoot: {fileID: 0}
+  deathTrigger: die
+  deathStateTag: death
+  deathAnimTimeout: 3
   stunColor: {r: 0.4, g: 0.6, b: 1, a: 1}
-  stunEffectPrefab: {fileID: 0}
+  stunEffectPrefab: {fileID: 2672925459891620947, guid: 9673281826c36c94db1d5416195fc4c5, type: 3}
+  stunVfxOffset: {x: 0, y: 0, z: 0}
+  stunVfxScale: 0.4
   floatingDamageTextPrefab: {fileID: 6073548590437510050, guid: 8d0fe2c99d450df4f8d2989a1bb6a18f, type: 3}
   healthBarFill: {fileID: 1449960644631884161}
+  poisonVfxOffset: {x: 0, y: 2.2, z: 0}
+  poisonVfxScale: 0.9
+  fireVfxOffset: {x: 0, y: 0, z: 0}
+  fireVfxScale: 1
+  isFlying: 1
   canExplode: 0
   explosionRadius: 2
   explosionDamage: 30
@@ -140,7 +150,7 @@ Animator:
   m_GameObject: {fileID: 6345430543806320468}
   m_Enabled: 1
   m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: f7b97cc1228ad7b4e9b87a5058576019, type: 2}
+  m_Controller: {fileID: 9100000, guid: 0af780fbb96dbcf48861a692e043d787, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
@@ -223,8 +233,8 @@ BoxCollider2D:
   m_Offset: {x: 0, y: 0}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
-    pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 0.96, y: 1.14}
+    pivot: {x: 0.5125, y: -0.024305554}
+    oldSize: {x: 2.4, y: 2.88}
     newSize: {x: 0.53, y: 0.78}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
@@ -272,9 +282,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShadowBlob
   shadowSprite: {fileID: -662976839713584831, guid: 71219cd7c59b0d0419ba59aec014e3b2, type: 3}
-  offset: {x: 0.07, y: 0}
-  scale: {x: 0.5, y: 0.5}
-  alpha: 0.577
+  offset: {x: 0.07, y: 0.1}
+  scale: {x: 1, y: 1}
+  alpha: 0.345
 --- !u!1 &6750699082038580535
 GameObject:
   m_ObjectHideFlags: 0
@@ -303,7 +313,7 @@ RectTransform:
   m_GameObject: {fileID: 6750699082038580535}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 0.01, y: 0.01, z: 1}
+  m_LocalScale: {x: 0.02, y: 0.013, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 5771945666511294106}
@@ -311,7 +321,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 1.827}
+  m_AnchoredPosition: {x: 0, y: 3.11}
   m_SizeDelta: {x: 120, y: 15}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!223 &2565257393107490792
@@ -335,7 +345,7 @@ Canvas:
   m_UseReflectionProbes: 0
   m_AdditionalShaderChannelsFlag: 0
   m_UpdateRectTransformForStandalone: 0
-  m_SortingLayerID: 0
+  m_SortingLayerID: 222305419
   m_SortingOrder: 0
   m_TargetDisplay: 0
 --- !u!114 &4259756791014865861

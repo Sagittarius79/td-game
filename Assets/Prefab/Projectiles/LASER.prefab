@@ -104,7 +104,26 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1f1da56c90455274698cd9bd6d1dfc39, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Projectile
-  moveSpeed: 10
+  projectileTag: Laser
+  pierceCount: 0
+  javelinCanCrit: 0
+  javelinCritDamagePercent: 200
+  prismaDmgBonus: 1
+  prismaRangeBonus: 1
+  prismaElementChanger: 1
+  prismaElementBaseInterval: 11
+  prismaElementDamagePercent: 100
+  prismaBounce: 1
+  prismaMaxBounces: 1
+  prismaBounceBaseChance: 0
+  prismaBounceChancePerArmor: 10
+  prismaBounceMaxChance: 80
+  prismaElementActive: 0
+  prismaBounceSkillBonus: 0
+  prismaBounceRange: 0
+  prismaBouncesLeft: 0
+  canHitFlying: 1
+  moveSpeed: 20
   maxLifetime: 2
   impactEffect: {fileID: 0}
   impactOffset: {x: 0, y: 0, z: 0}
@@ -113,6 +132,11 @@ MonoBehaviour:
   pullRadius: 0
   pullForce: 3
   pullDuration: 0.4
+  applyPoison: 0
+  poisonDamagePerSecond: 1
+  poisonDuration: 5
+  maxPoisonStacks: 3
+  poisonVfxPrefab: {fileID: 0}
   applyBurning: 0
   burnDamagePerSecond: 5
   burnDuration: 5
@@ -137,3 +161,4 @@ MonoBehaviour:
   stoneMagicAOEDmgBonus: 0
   stoneChargeDmgBonus: 0
   damageType: 1
+  javelinActiveCritChance: 0

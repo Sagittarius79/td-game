@@ -32,6 +32,10 @@ public class Enemy : MonoBehaviour
     public float moveSpeed = 0.156f;
     public int damage = 0;
 
+    [Header("Immunitás")]
+    [Tooltip("Ezekre a lövedék tagekre immunis a szörny (pl. Arrow, Magic, Poison)")]
+    public List<string> immuneToProjectileTags = new List<string>();
+
     [Header("Védelmi értékek")]
     [Tooltip("Fizikai sebzés csökkentése. Pl. 2 armor → 10 fizikai sebzésből 8 lesz. Minimum 1 sebzés mindig átmegy.")]
     public float armor = 0f;
@@ -43,16 +47,45 @@ public class Enemy : MonoBehaviour
     public GameObject deathEffect;
     public GameObject healthBarRoot;
 
+    [Header("Halál animáció")]
+    [Tooltip("Halál animáció trigger neve az Animator-ban (ha üres, nem vár animációra)")]
+    public string deathTrigger = "";
+    [Tooltip("Halál animáció state tag-je (Animatorban a state-en kell lennie). Ha üres, fix időt vár.")]
+    public string deathStateTag = "death";
+    [Tooltip("Maximum várakozási idő a halál animációra (másodperc)")]
+    public float deathAnimTimeout = 3f;
+
     [Header("Stun vizuális")]
     [Tooltip("Szín amire vált stun alatt (pl. kék/lila)")]
     public Color stunColor = new Color(0.4f, 0.6f, 1f);
     [Tooltip("Opcionális: stun effekt prefab (pl. csillagok)")]
     public GameObject stunEffectPrefab;
+    [Tooltip("A stun VFX pozíció eltolása a sprite tetejéhez képest")]
+    public Vector3 stunVfxOffset = Vector3.zero;
+    [Tooltip("A stun VFX méretének szorzója (1 = sprite szélességéhez igazodik)")]
+    public float stunVfxScale = 1f;
 
     [Header("Lebegő sebzés szám")]
     [Tooltip("A FloatingDamageText prefab – ha üres, nem jelenik meg sebzés szám")]
     public GameObject floatingDamageTextPrefab;
     public UnityEngine.UI.Image healthBarFill;
+
+    [Header("Poison VFX")]
+    [Tooltip("A méreg VFX pozíció eltolása a sprite tetejéhez képest")]
+    public Vector3 poisonVfxOffset = Vector3.zero;
+    [Tooltip("A méreg VFX méretének szorzója (1 = sprite szélességéhez igazodik)")]
+    public float poisonVfxScale = 1f;
+
+    [Header("Fire VFX")]
+    [Tooltip("A tűz VFX pozíció eltolása a sprite tetejéhez képest")]
+    public Vector3 fireVfxOffset = Vector3.zero;
+    [Tooltip("A tűz VFX méretének szorzója (1 = sprite szélességéhez igazodik)")]
+    public float fireVfxScale = 1f;
+
+
+    [Header("Mozgás típusa")]
+    [Tooltip("Ha be van kapcsolva, a lény repül (Air). Ha ki van kapcsolva, a földön jár (Ground).")]
+    public bool isFlying = false;
 
     [Header("Robbanás")]
     [Tooltip("Ha be van kapcsolva, halálkor felrobban és AOE sebzést okoz a közeli tornyoknak")]
@@ -217,15 +250,13 @@ public class Enemy : MonoBehaviour
             return;
         }
 
-        // Pull: a normál útvonal helyett a becsapódás pontja felé húzódik
+        // Pull: a normál mozgás mellé ráteszi a húzóerőt (nem állítja meg a szörnyet)
         if (_pullTimer > 0f)
         {
             _pullTimer -= Time.deltaTime;
             Vector3 dir = _pullCenter - transform.position;
             if (dir.magnitude > 0.05f)
                 transform.position += dir.normalized * _pullForce * Time.deltaTime;
-            UpdateSortingOrder();
-            return;
         }
 
         MoveAlongPath();
@@ -263,8 +294,24 @@ public class Enemy : MonoBehaviour
             spriteRenderer.color = stunColor;
 
         if (stunEffectPrefab != null && _stunEffectInstance == null)
-            _stunEffectInstance = Instantiate(stunEffectPrefab, transform.position + Vector3.up * 0.5f,
-                                              Quaternion.identity, transform);
+        {
+            _stunEffectInstance = Instantiate(stunEffectPrefab, transform.position, Quaternion.identity, transform);
+
+            var sr = spriteRenderer;
+            if (sr != null)
+            {
+                float spriteHeight = sr.bounds.size.y;
+                float spriteWidth  = sr.bounds.size.x;
+
+                _stunEffectInstance.transform.localPosition = new Vector3(
+                    stunVfxOffset.x,
+                    spriteHeight * 0.5f + stunVfxOffset.y,
+                    stunVfxOffset.z);
+
+                float finalScale = spriteWidth * stunVfxScale;
+                _stunEffectInstance.transform.localScale = new Vector3(finalScale, finalScale, finalScale);
+            }
+        }
     }
 
     void OnStunEnd()
@@ -295,18 +342,15 @@ public class Enemy : MonoBehaviour
         Vector3 dir    = target - transform.position;
         float step     = moveSpeed * Time.deltaTime;
 
+        // Sprite tükrözés – folyamatosan frissül a jelenlegi célirány alapján
+        if (spriteRenderer != null && dir.magnitude > 0.01f)
+            spriteRenderer.flipX = dir.x < 0;
+
         if (dir.magnitude <= step)
         {
             // Elértük a következő waypoint-ot → lépjünk a következőre
             transform.position = target;
             currentWaypointIndex++;
-
-            // Sprite tükrözés mozgásirány alapján (jobbra/balra nézés)
-            if (currentWaypointIndex < worldWaypoints.Length && spriteRenderer != null)
-            {
-                Vector3 nextDir = worldWaypoints[currentWaypointIndex] - transform.position;
-                spriteRenderer.flipX = nextDir.x < 0;
-            }
         }
         else
         {
@@ -351,6 +395,7 @@ public class Enemy : MonoBehaviour
     public bool TakeDamage(float amount, DamageType damageType = DamageType.Physical, bool isCrit = false)
     {
         if (isDead || reachedCastle) return false;
+
 
         // Ellenállás levonása a bejövő sebzésből
         // Fizikai: minimum 1 – az armor sosem blokkol teljesen
@@ -429,11 +474,39 @@ public class Enemy : MonoBehaviour
         }
         else
         {
-            if (deathEffect != null)
-                Instantiate(deathEffect, transform.position, Quaternion.identity);
-
-            Destroy(gameObject);
+            StartCoroutine(DieWithAnimation());
         }
+    }
+
+    IEnumerator DieWithAnimation()
+    {
+        if (healthBarRoot != null) healthBarRoot.SetActive(false);
+
+        var animator = GetComponent<Animator>();
+        if (animator != null && !string.IsNullOrEmpty(deathTrigger))
+        {
+            animator.SetTrigger(deathTrigger);
+
+            float elapsed = 0f;
+            bool started = false;
+            while (elapsed < deathAnimTimeout)
+            {
+                yield return null;
+                elapsed += Time.deltaTime;
+                var info = animator.GetCurrentAnimatorStateInfo(0);
+
+                if (!string.IsNullOrEmpty(deathStateTag))
+                {
+                    if (!started && info.IsTag(deathStateTag)) started = true;
+                    if (started && info.normalizedTime >= 1f) break;
+                }
+            }
+        }
+
+        if (deathEffect != null)
+            Instantiate(deathEffect, transform.position, Quaternion.identity);
+
+        Destroy(gameObject);
     }
 
     IEnumerator ExplodeAndDestroy()

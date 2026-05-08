@@ -3,7 +3,7 @@ using UnityEngine.InputSystem;
 
 /// <summary>
 /// Lerakott toronyra érintéskor megmutatja a hatótávolság kört.
-/// Máshova érintéskor elrejti.
+/// SpyTowerBuilding esetén 3 másodperces nyomásra nyit panelt.
 /// </summary>
 public class TowerSelector : MonoBehaviour
 {
@@ -12,20 +12,14 @@ public class TowerSelector : MonoBehaviour
     void Update()
     {
         if (GameManager.Instance == null || GameManager.Instance.IsGameOver) return;
-
-        // Torony lerakás közben ne válasszon
         if (TowerShopUI.Instance != null && TowerShopUI.Instance.IsDragging) return;
-
-        // PvP küldő panel nyitva → ne válasszon tornyot
         if (PvPSendPanel.Instance != null && PvPSendPanel.Instance.IsOpen) return;
 
         bool tapped = false;
 
-        // Egér
         if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
             tapped = true;
 
-        // Érintés
         if (Touchscreen.current != null && Touchscreen.current.touches.Count > 0)
             if (Touchscreen.current.touches[0].phase.ReadValue() == UnityEngine.InputSystem.TouchPhase.Began)
                 tapped = true;
@@ -35,19 +29,61 @@ public class TowerSelector : MonoBehaviour
         Vector3 worldPos = GetWorldPosition();
         Tower hit = GetTowerAt(worldPos);
         SelectTower(hit);
+
+        if (hit == null)
+            TryClickRubble(worldPos);
     }
 
     void SelectTower(Tower tower)
     {
-        // Előző torony range körének elrejtése
         if (selectedTower != null)
             selectedTower.ShowRange(false);
 
+        if (tower is SpyTowerBuilding spy)
+        {
+            selectedTower = null;
+            spy.OpenSpyPanel();
+            return;
+        }
+
         selectedTower = tower;
 
-        // Új torony range körének megjelenítése
         if (selectedTower != null)
             selectedTower.ShowRange(true);
+    }
+
+    void TryClickRubble(Vector3 worldPos)
+    {
+        if (GridManager.Instance == null) return;
+        Vector2Int cell = GridManager.Instance.WorldToGrid(worldPos);
+        if (GridManager.Instance.GetCell(cell) != GridManager.CellType.Rubble) return;
+
+        int rounds = GridManager.Instance.GetRubbleRoundsLeft(cell);
+        if (rounds <= 0) return;
+
+        // Ha a rubble prefabon van RubbleClickable, azt használjuk
+        var rubble = GetRubbleClickableAt(worldPos);
+        if (rubble != null)
+        {
+            rubble.ShowInfo();
+            return;
+        }
+
+        // Fallback: nincs RubbleClickable komponens a prefabon
+        string msg = rounds == 1 ? "Még 1 kör" : $"Még {rounds} kör";
+        Debug.Log($"[Rubble] {cell}: {msg}");
+    }
+
+    RubbleClickable GetRubbleClickableAt(Vector3 worldPos)
+    {
+        float radius = GridManager.Instance.tileWidth * 0.5f;
+        var cols = Physics2D.OverlapCircleAll(worldPos, radius);
+        foreach (var col in cols)
+        {
+            var rc = col.GetComponent<RubbleClickable>();
+            if (rc != null) return rc;
+        }
+        return null;
     }
 
     Tower GetTowerAt(Vector3 worldPos)

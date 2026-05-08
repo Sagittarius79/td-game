@@ -42,7 +42,6 @@ public class LoginUI : MonoBehaviour
     public TextMeshProUGUI profileNameText;   // "Kovács János"
     public TextMeshProUGUI profileStatsText;  // "Szint 3 • 720 XP • 5 győzelem"
     public Image profileXPBar;               // XP progress bar (fill image)
-    public Button signOutButton;
 
     // ── Belső állapot ─────────────────────────────────────────────────
     private bool _awaitingSignIn       = false;
@@ -63,8 +62,6 @@ public class LoginUI : MonoBehaviour
             googleSignInButton.onClick.AddListener(OnGoogleSignInPressed);
         if (guestButton != null)
             guestButton.onClick.AddListener(OnGuestPressed);
-        if (signOutButton != null)
-            signOutButton.onClick.AddListener(OnSignOutPressed);
 
         // GoogleAuthManager esemény feliratkozás
         if (GoogleAuthManager.Instance != null)
@@ -124,7 +121,37 @@ public class LoginUI : MonoBehaviour
         _awaitingSignIn = true;
         SetLoading(true);
         SetStatus("Bejelentkezés folyamatban...");
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // WebGL: böngészős Google OAuth2 Implicit Flow
+        // 1. Megnyílik a Google login lap (új ablak/tab)
+        // 2. Visszairányít google-callback.html-re → localStorage-ba írja a tokent
+        // 3. Itt pollozzuk a localStorage-t és beküldjük a szervernek
+        var webglAuth = GoogleAuthWebGL.Instance;
+        if (webglAuth == null)
+        {
+            OnSignInFailed("GoogleAuthWebGL komponens hiányzik a scene-ből.");
+            return;
+        }
+        webglAuth.StartGoogleLogin(
+            onTokenReceived: (idToken) =>
+            {
+                SetStatus("Token megvan, azonosítás...");
+                MatchmakingClient.Instance?.VerifyGoogleToken(
+                    idToken,
+                    onSuccess: (displayName, playerId) =>
+                    {
+                        GoogleAuthManager.Instance?.SetWebGLSignIn(playerId, displayName, "");
+                    },
+                    onError: (err) => OnSignInFailed(err)
+                );
+            },
+            onError: (err) => OnSignInFailed(err)
+        );
+#else
+        // Android / Editor: natív Google Sign-In plugin
         GoogleAuthManager.Instance?.SignIn();
+#endif
     }
 
     void OnGuestPressed()
@@ -132,14 +159,6 @@ public class LoginUI : MonoBehaviour
         // Vendég mód: nincs Google fiók, az adatok helyben tárolódnak de névtelen marad
         SetStatus("You are playing as a GUEST – no data sync!");
         StartCoroutine(HideAfterDelay(3.8f));
-    }
-
-    void OnSignOutPressed()
-    {
-        GoogleAuthManager.Instance?.SignOut();
-        UserProgressManager.Instance?.ClearData();
-        RefreshUI();
-        Show();
     }
 
     // ── GoogleAuthManager callback-ek ─────────────────────────────────
@@ -206,7 +225,10 @@ public class LoginUI : MonoBehaviour
 
     void OnSignedOut()
     {
+        _characterFlowStarted = false;
+        _awaitingSignIn       = false;
         RefreshUI();
+        Show();
     }
 
     // ── UI frissítés ──────────────────────────────────────────────────

@@ -20,7 +20,8 @@ public class DetailedCharacterUI : MonoBehaviour
 
     [Header("Gombok")]
     public Button skillsButton;
-    public Button BuildingsButton;
+    public Button specialBuildingsButton;
+    public Button monstersButton;
     public Button backButton;
 
     private CharacterEntryUI _card;
@@ -36,8 +37,11 @@ public class DetailedCharacterUI : MonoBehaviour
         if (skillsButton != null)
             skillsButton.onClick.AddListener(OnSkillsPressed);
 
-        if (BuildingsButton != null)
-            BuildingsButton.onClick.AddListener(OnBuildingsPressed);
+        if (specialBuildingsButton != null)
+            specialBuildingsButton.onClick.AddListener(OnSpecialBuildingsPressed);
+
+        if (monstersButton != null)
+            monstersButton.onClick.AddListener(OnMonstersPressed);
 
         if (backButton != null)
             backButton.onClick.AddListener(Hide);
@@ -90,8 +94,25 @@ public class DetailedCharacterUI : MonoBehaviour
         SkillsUI.Instance.Show();
     }
     
-    void OnBuildingsPressed()
+    void OnSpecialBuildingsPressed()
     {
-        SceneManager.LoadScene("Buildings");
+        if (SpecialSkillsController.Instance == null)
+        {
+            Debug.LogError("OnSpecialBuildingsPressed: SpecialSkillsController.Instance NULL – nincs a scene-ben!");
+            return;
+        }
+        if (detailPanel != null) detailPanel.SetActive(false);
+        SpecialSkillsController.Instance.Show();
+    }
+
+    void OnMonstersPressed()
+    {
+        if (MonstersUI.Instance == null)
+        {
+            Debug.LogError("OnMonstersPressed: MonstersUI.Instance NULL – a MonstersUI nincs a scene-ben!");
+            return;
+        }
+        if (detailPanel != null) detailPanel.SetActive(false);
+        MonstersUI.Instance.Show();
     }
 }

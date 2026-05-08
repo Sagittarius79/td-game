@@ -48,7 +48,7 @@ public class CharacterEntryUI : MonoBehaviour
         _characterId = data.characterId;
 
         if (characterNameText != null) characterNameText.text = data.characterName;
-        if (levelText         != null) levelText.text         = $"Szint {data.Level}";
+        if (levelText         != null) levelText.text         = $"Lvl {data.Level}";
         if (statsText         != null) statsText.text         = $"{data.totalXP} XP  •  {data.totalWins}W / {data.totalLosses}L";
         if (xpBarFill         != null) xpBarFill.fillAmount   = data.LevelProgress;
         RefreshSkillPoints(data.availableSkillPoints);
@@ -73,7 +73,7 @@ public class CharacterEntryUI : MonoBehaviour
 
         // Szövegek
         if (characterNameText != null) characterNameText.text = data.characterName;
-        if (levelText         != null) levelText.text         = $"Szint {data.Level}";
+        if (levelText         != null) levelText.text         = $"Lvl {data.Level}";
         if (statsText         != null) statsText.text         = $"{data.totalXP} XP  •  {data.totalWins}W / {data.totalLosses}L";
         if (xpBarFill         != null) xpBarFill.fillAmount   = data.LevelProgress;
         RefreshSkillPoints(data.availableSkillPoints);

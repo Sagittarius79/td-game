@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -57,11 +58,17 @@ public class TowerShopItem : MonoBehaviour,
             nameText.text = towerName;
     }
 
+    // towerName → ikon sprite kereséshez (SpyTowerPanelUI használja)
+    public static readonly Dictionary<string, Sprite> IconRegistry = new Dictionary<string, Sprite>();
+
     void Awake()
     {
         canvasGroup = GetComponent<CanvasGroup>();
         if (canvasGroup == null)
             canvasGroup = gameObject.AddComponent<CanvasGroup>();
+
+        if (!string.IsNullOrEmpty(towerName) && towerSprite != null)
+            IconRegistry[towerName] = towerSprite;
 
         // Az Inspectorban beállított costText szín mentése
         if (costText != null)
@@ -133,6 +140,17 @@ public class TowerShopItem : MonoBehaviour,
 
         int afterDiscount = Mathf.Max(1, baseCost - discount);
 
+        // Skill pont alapú árszorzó: minden elköltött pont +1%
+        if (towerPrefab != null && UserProgressManager.Instance != null)
+        {
+            var tower = towerPrefab.GetComponent<Tower>();
+            if (tower != null && tower.priceSkillTree != null)
+            {
+                int spent = UserProgressManager.Instance.GetTotalSpentPoints(tower.priceSkillTree);
+                afterDiscount = Mathf.RoundToInt(afterDiscount * (1f + spent * 0.01f));
+            }
+        }
+
         // Globális épület árengedmény %-ban (Buildings skill tree)
         if (BuildingsConfig.Instance != null)
         {
@@ -177,6 +195,15 @@ public class TowerShopItem : MonoBehaviour,
 
     public void OnPointerDown(PointerEventData eventData)
     {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // Jobb klik WebGL-en → tooltip megjelenítése
+        if (eventData.button == PointerEventData.InputButton.Right)
+        {
+            StartTowerDrag(forceBuild: false);  // tooltipMode=true → Show() hívódik
+            return;
+        }
+        // Bal klik: szokásos flag beállítás
+#endif
         pointerDownPos = eventData.position;
         pointerDown    = true;
         dragStarted    = false;
@@ -201,6 +228,19 @@ public class TowerShopItem : MonoBehaviour,
 
     public void OnPointerUp(PointerEventData eventData)
     {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // Jobb klik UP → nem csinálunk semmit (OnPointerDown kezelte)
+        if (eventData.button == PointerEventData.InputButton.Right) return;
+
+        // Bal klik WebGL-en → közvetlen torony építés (tooltip kihagyása)
+        if (pointerDown && !dragStarted)
+            StartTowerDrag(forceBuild: true);
+
+        pointerDown = false;
+        dragStarted = false;
+        return;
+#endif
+        // ── Mobil / Editor ────────────────────────────────────────────
         if (pointerDown && !dragStarted &&
             BuildMenuUI.Instance != null && BuildMenuUI.Instance.tooltipMode)
         {

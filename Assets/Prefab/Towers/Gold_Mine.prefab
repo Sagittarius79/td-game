@@ -108,6 +108,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GoldMine
   goldPerTick: 1
   tickInterval: 1
+  buildingsSkillTree: {fileID: 11400000, guid: 30554a5793492dd4c9fd5c8f8eb2712c, type: 2}
 --- !u!114 &8243205952469340304
 MonoBehaviour:
   m_ObjectHideFlags: 0

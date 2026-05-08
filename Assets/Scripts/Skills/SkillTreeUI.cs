@@ -31,6 +31,7 @@ public class SkillTreeUI : MonoBehaviour
     public TextMeshProUGUI    treeTitleText;   // "ARCHER"
     public Button             backButton;
     public string             backSceneName = "MainMenu";
+    public string             backPanel     = "DetailedCharacter"; // "DetailedCharacter" vagy "SpecialSkillsPanel"
 
     [Header("Elrendezés")]
     public float nodeWidth     = 110f;
@@ -124,7 +125,12 @@ public class SkillTreeUI : MonoBehaviour
 
     void OnBackPressed()
     {
-        PlayerPrefs.SetInt("OpenDetailedCharacter", 1);
+        if (backPanel == "SpecialSkillsPanel")
+            PlayerPrefs.SetInt("OpenSpecialSkillsPanel", 1);
+        else if (backPanel == "SkillsPanel")
+            PlayerPrefs.SetInt("OpenSkillsPanel", 1);
+        else
+            PlayerPrefs.SetInt("OpenDetailedCharacter", 1);
         SceneManager.LoadScene(backSceneName);
     }
 

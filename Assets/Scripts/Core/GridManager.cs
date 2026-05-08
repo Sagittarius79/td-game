@@ -21,8 +21,21 @@ public class GridManager : MonoBehaviour
     [Header("Rács origó – állítsd a Tilemap bal felső sarkára!")]
     public Vector2 gridOrigin = new Vector2(-9.6f, 12.8f);
 
-    public enum CellType { Empty, Road, Occupied, Castle }
+    public enum CellType { Empty, Road, Occupied, Castle, Rubble }
     private CellType[,] grid;
+
+    struct RubbleData
+    {
+        public int roundsLeft;
+        public GameObject instance;
+    }
+    private Dictionary<Vector2Int, RubbleData> rubbleCells = new Dictionary<Vector2Int, RubbleData>();
+
+    [Header("Törmelék")]
+    [Tooltip("Törmelék sprite prefab – a lerombolódott torony helyén jelenik meg")]
+    public GameObject rubblePrefab;
+    [Tooltip("Hány körig marad a törmelék (alapértelmezett: 5)")]
+    public int rubbleDuration = 5;
 
     [Header("Út waypoint-ok (col, row) – 0,0 = bal felső sarok")]
     public Vector2Int[] pathWaypoints = new Vector2Int[]
@@ -124,6 +137,56 @@ public class GridManager : MonoBehaviour
 
     public void SetEmpty(Vector2Int cell)
     { if (IsInBounds(cell) && grid[cell.x, cell.y] == CellType.Occupied) grid[cell.x, cell.y] = CellType.Empty; }
+
+    public int GetRubbleRoundsLeft(Vector2Int cell)
+        => rubbleCells.TryGetValue(cell, out var d) ? d.roundsLeft : 0;
+
+    public void PlaceRubble(Vector2Int cell)
+    {
+        if (!IsInBounds(cell)) return;
+        grid[cell.x, cell.y] = CellType.Rubble;
+
+        GameObject rubbleObj = null;
+        if (rubblePrefab != null)
+        {
+            Vector3 worldPos = GridToWorld(cell);
+            rubbleObj = Instantiate(rubblePrefab, worldPos, Quaternion.identity);
+            var sr = rubbleObj.GetComponent<SpriteRenderer>();
+            if (sr != null)
+                sr.sortingOrder = GetSortingOrder(cell.x, cell.y);
+        }
+
+        var data = new RubbleData { roundsLeft = rubbleDuration, instance = rubbleObj };
+        rubbleCells[cell] = data;
+
+        if (rubbleObj != null)
+        {
+            var clickable = rubbleObj.GetComponent<RubbleClickable>();
+            if (clickable != null)
+                clickable.Init(cell);
+        }
+    }
+
+    public void TickRubble()
+    {
+        var keys = new List<Vector2Int>(rubbleCells.Keys);
+        foreach (var key in keys)
+        {
+            var data = rubbleCells[key];
+            data.roundsLeft--;
+            if (data.roundsLeft <= 0)
+            {
+                if (data.instance != null) Destroy(data.instance);
+                if (IsInBounds(key) && grid[key.x, key.y] == CellType.Rubble)
+                    grid[key.x, key.y] = CellType.Empty;
+                rubbleCells.Remove(key);
+            }
+            else
+            {
+                rubbleCells[key] = data;
+            }
+        }
+    }
 
     public int GetSortingOrder(int col, int row) => row;
 

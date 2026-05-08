@@ -26,6 +26,7 @@ MonoBehaviour:
     prerequisites: []
     effectType: 13
     effectValuePerLevel: 0.04
+    fixedCostPerLevel: 0
   - id: Standard_Stone_Single_DMG
     displayName: Lvl1 Stone Attack DMG
     description: '+0.2 Single Target DMG / point for Standard Stone Tower '
@@ -38,6 +39,7 @@ MonoBehaviour:
     - Standard_Stone_AOE
     effectType: 7
     effectValuePerLevel: 0.2
+    fixedCostPerLevel: 0
   - id: Tower_Armor
     displayName: Tower Armor Boost
     description: '+1 Armor / point for Standard Stone Tower '
@@ -50,18 +52,20 @@ MonoBehaviour:
     - Standard_Stone_AOE
     effectType: 14
     effectValuePerLevel: 1
+    fixedCostPerLevel: 0
   - id: Standard_Stone_AOE_DMG
     displayName: Standard Stone AOE DMG Boost
     description: '+0.1 AOE DMG / point for Standard Stone Tower '
     icon: {fileID: 0}
-    maxLevel: 20
+    maxLevel: 30
     costPerLevel: 1
     row: 1
     column: 1
     prerequisites:
     - Standard_Stone_AOE
-    effectType: 13
+    effectType: 15
     effectValuePerLevel: 0.1
+    fixedCostPerLevel: 0
   - id: Standard_Stone_Attack_speed
     displayName: Standard Stone Attack Speed
     description: '+0.05 Attack Speed / point for Standard Stone Tower '
@@ -76,6 +80,7 @@ MonoBehaviour:
     - Standard_Stone_AOE_DMG
     effectType: 9
     effectValuePerLevel: 0.05
+    fixedCostPerLevel: 0
   - id: Unlock_Stone_Tower_Lvl2
     displayName: Unlock Stone Tower Lvl2
     description: 'Unlock Stone Tower Lvl2 + Lvl2 Skill Tree  '
@@ -88,3 +93,4 @@ MonoBehaviour:
     - Standard_Stone_Attack_speed
     effectType: 0
     effectValuePerLevel: 0
+    fixedCostPerLevel: 0

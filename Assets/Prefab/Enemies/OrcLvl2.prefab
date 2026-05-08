@@ -18,7 +18,7 @@ GameObject:
   - component: {fileID: 3873816331233891627}
   m_Layer: 0
   m_Name: OrcLvl2
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -33,8 +33,8 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -2.301, y: 0.75595, z: 0}
-  m_LocalScale: {x: 0.7, y: 0.7, z: 0.7}
-  m_ConstrainProportionsScale: 1
+  m_LocalScale: {x: 0.5, y: 0.5, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 4683875931892828847}
   m_Father: {fileID: 0}
@@ -88,7 +88,7 @@ SpriteRenderer:
   m_SortingLayer: 5
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: 6268121539269117222, guid: e4a5e00281092ca4b8b703d2e7f12b4c, type: 3}
+  m_Sprite: {fileID: 4988999727314350770, guid: d398e6b4e15cf3f4c81ed318ebe52a97, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
@@ -113,15 +113,26 @@ MonoBehaviour:
   maxHealth: 300
   moveSpeed: 2
   damage: 0
+  immuneToProjectileTags: []
   armor: 1
   magicResist: 1
   spriteRenderer: {fileID: 2372702782504723514}
   deathEffect: {fileID: 7639616934462050572, guid: 0608bb017125cb4478f263577e9aa1f8, type: 3}
   healthBarRoot: {fileID: 0}
+  deathTrigger: die
+  deathStateTag: death
+  deathAnimTimeout: 2
   stunColor: {r: 0.4, g: 0.6, b: 1, a: 1}
-  stunEffectPrefab: {fileID: 0}
+  stunEffectPrefab: {fileID: 2672925459891620947, guid: 9673281826c36c94db1d5416195fc4c5, type: 3}
+  stunVfxOffset: {x: 0, y: 0, z: 0}
+  stunVfxScale: 0.7
   floatingDamageTextPrefab: {fileID: 6073548590437510050, guid: 8d0fe2c99d450df4f8d2989a1bb6a18f, type: 3}
   healthBarFill: {fileID: 1449960644631884161}
+  poisonVfxOffset: {x: 0, y: 1.4, z: 0}
+  poisonVfxScale: 0.7
+  fireVfxOffset: {x: 0, y: 0.6, z: 0}
+  fireVfxScale: 0.3
+  isFlying: 0
   canExplode: 0
   explosionRadius: 2
   explosionDamage: 30
@@ -153,7 +164,7 @@ Animator:
   m_GameObject: {fileID: 6345430543806320468}
   m_Enabled: 1
   m_Avatar: {fileID: 0}
-  m_Controller: {fileID: 9100000, guid: 5342cf53a84705046a16c5f7c44fed1f, type: 2}
+  m_Controller: {fileID: 9100000, guid: 6f889c1cdbc88dd4fb661e977103cdf0, type: 2}
   m_CullingMode: 0
   m_UpdateMode: 0
   m_ApplyRootMotion: 0
@@ -202,8 +213,8 @@ BoxCollider2D:
   m_Offset: {x: 0, y: 0}
   m_SpriteTilingProperty:
     border: {x: 0, y: 0, z: 0, w: 0}
-    pivot: {x: 0.5, y: 0.5}
-    oldSize: {x: 0.62, y: 0.79}
+    pivot: {x: 0.51211077, y: -0.14830509}
+    oldSize: {x: 1.445, y: 1.18}
     newSize: {x: 0.53, y: 0.78}
     adaptiveTilingThreshold: 0.5
     drawMode: 0
@@ -251,8 +262,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ShadowBlob
   shadowSprite: {fileID: -662976839713584831, guid: 71219cd7c59b0d0419ba59aec014e3b2, type: 3}
-  offset: {x: 0.07, y: 0}
-  scale: {x: 0.4, y: 0.4}
+  offset: {x: 0.07, y: 0.2}
+  scale: {x: 0.6, y: 0.6}
   alpha: 0.604
 --- !u!1 &6750699082038580535
 GameObject:
@@ -290,7 +301,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 0, y: 0.815}
+  m_AnchoredPosition: {x: 0, y: 1.418}
   m_SizeDelta: {x: 100, y: 7}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!223 &2565257393107490792
@@ -314,7 +325,7 @@ Canvas:
   m_UseReflectionProbes: 0
   m_AdditionalShaderChannelsFlag: 0
   m_UpdateRectTransformForStandalone: 0
-  m_SortingLayerID: 0
+  m_SortingLayerID: 222305419
   m_SortingOrder: 0
   m_TargetDisplay: 0
 --- !u!114 &4259756791014865861

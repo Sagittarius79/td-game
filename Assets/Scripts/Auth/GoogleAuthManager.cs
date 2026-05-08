@@ -256,6 +256,22 @@ public class GoogleAuthManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// WebGL-specifikus: a MatchmakingClient.VerifyGoogleToken() már elvégezte a
+    /// session-t, csak az in-memory bejelentkezési állapotot frissítjük itt.
+    /// NEM hív DevLogin-t vagy VerifyGoogleToken-t újra.
+    /// </summary>
+    public void SetWebGLSignIn(string userId, string displayName, string email)
+    {
+        IsSignedIn    = true;
+        UserId        = userId;
+        DisplayName   = displayName;
+        Email         = email;
+        UserProgressManager.Instance?.SetUserInfo(userId, displayName, email);
+        Debug.Log($"GoogleAuthManager [WebGL]: bejelentkezve – {displayName}");
+        OnSignInSuccess?.Invoke(userId, displayName, email);
+    }
+
     private void ClearSession()
     {
         IsSignedIn    = false;

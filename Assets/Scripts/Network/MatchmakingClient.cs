@@ -60,7 +60,7 @@ public class MatchmakingClient : MonoBehaviour
 
     void Awake()
     {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        if (Instance != null && Instance != this) { Destroy(this); return; }
         Instance = this;
         DontDestroyOnLoad(gameObject);
     }
@@ -311,8 +311,8 @@ public class MatchmakingClient : MonoBehaviour
     /// onWaiting:  még vár             → (countdown másodpercek, playerCount)
     /// </summary>
     public void PollMatchmakingStatus(
-        Action<string, ushort, string, int> onMatched,
-        Action<int, int> onWaiting,
+        Action<string, ushort, string, int, string[]> onMatched,
+        Action<int, int, string[]> onWaiting,
         Action<string> onError)
     {
         StartCoroutine(GetCoroutine(
@@ -322,14 +322,15 @@ public class MatchmakingClient : MonoBehaviour
                 if (err != null) { onError?.Invoke(err); return; }
 
                 var resp = JsonUtility.FromJson<MatchmakingStatusJson>(json);
+                var names = resp.player_names ?? Array.Empty<string>();
                 if (resp.status == "matched")
                 {
                     CurrentMatchId = resp.match_id;
-                    onMatched?.Invoke(resp.server_host, (ushort)resp.server_port, resp.match_id, resp.player_count);
+                    onMatched?.Invoke(resp.server_host, (ushort)resp.server_port, resp.match_id, resp.player_count, names);
                 }
                 else
                 {
-                    onWaiting?.Invoke(resp.countdown, resp.player_count);
+                    onWaiting?.Invoke(resp.countdown, resp.player_count, names);
                 }
             }
         ));
@@ -531,5 +532,6 @@ public class MatchmakingClient : MonoBehaviour
         public string match_id;
         public string server_host;
         public int    server_port;
+        public string[] player_names;
     }
 }

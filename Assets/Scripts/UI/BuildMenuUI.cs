@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.EventSystems;
 using System.Collections;
 
 /// <summary>
@@ -38,6 +39,13 @@ public class BuildMenuUI : MonoBehaviour
     void Start()
     {
         CloseMenu();
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // WebGL-en egérrel nehéz drag-and-drop-ot végezni (scroll view konfliktus),
+        // ezért automatikusan bekapcsoljuk a tooltip módot:
+        // kattintás a toronyra → kiválasztás, kattintás a pályára → lerakás.
+        tooltipMode = true;
+#endif
     }
 
     void Update()
@@ -49,12 +57,15 @@ public class BuildMenuUI : MonoBehaviour
                 CloseMenu();
         }
 
-        // Tooltip kártya bezárása következő érintésre
+        // Tooltip kártya bezárása következő érintésre –
+        // de csak akkor, ha NEM UI elemen történt a kattintás
+        // (a BUILD/BACK gomb saját maga kezeli a bezárást)
         if (tooltipCloseReady)
         {
             bool anyTap = Input.GetMouseButtonDown(0) ||
                          (Input.touchCount > 0 && Input.GetTouch(0).phase == TouchPhase.Began);
-            if (anyTap)
+            bool overUI = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+            if (anyTap && !overUI)
             {
                 tooltipCloseReady = false;
                 if (TowerTooltipUI.Instance != null)

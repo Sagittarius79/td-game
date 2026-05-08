@@ -13,13 +13,30 @@ using UnityEngine;
 public class GoldBooster : MonoBehaviour
 {
     [Header("Bónusz")]
-    [Tooltip("Hány kill után jár 1 bónusz gold")]
+    [Tooltip("Hány kill után jár bónusz gold")]
     public int killsPerBonus = 5;
 
     [Tooltip("Mennyi gold jár minden N-edik kill után")]
     public int bonusGold = 1;
 
-    private int _killCounter = 0;
+    [Header("Skill fa")]
+    [Tooltip("A Buildings skill tree ScriptableObject")]
+    public SkillTreeDefinition buildingsSkillTree;
+
+    private int _killCounter      = 0;
+    private int _effectiveBonusGold = 1;
+
+    void Start()
+    {
+        _effectiveBonusGold = bonusGold;
+
+        if (buildingsSkillTree != null && UserProgressManager.Instance != null)
+        {
+            int bonus = Mathf.RoundToInt(UserProgressManager.Instance.GetTotalSkillEffect(
+                SkillEffectType.OrkDenBoost, buildingsSkillTree));
+            _effectiveBonusGold += bonus;
+        }
+    }
 
     void OnEnable()
     {
@@ -39,7 +56,7 @@ public class GoldBooster : MonoBehaviour
         if (_killCounter >= killsPerBonus)
         {
             _killCounter = 0;
-            GameManager.Instance.AddGold(bonusGold);
+            GameManager.Instance.AddGold(_effectiveBonusGold);
         }
     }
 }

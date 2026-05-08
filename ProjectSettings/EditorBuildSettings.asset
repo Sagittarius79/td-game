@@ -44,5 +44,17 @@ EditorBuildSettings:
   - enabled: 1
     path: Assets/Scenes/Buildings.unity
     guid: a377190f9e5f2b342b10cfff67b4019b
+  - enabled: 1
+    path: Assets/Scenes/Poison_Skill_Tree.unity
+    guid: b889a2f20aaec564b992be14375e47b9
+  - enabled: 1
+    path: Assets/Scenes/Javelin_Skill_Tree.unity
+    guid: 633aacd39a032a3448a69d1f0e1c2743
+  - enabled: 1
+    path: Assets/Scenes/Buildings_Skill_Tree.unity
+    guid: 177e02035b9e573489aefa03a83821d3
+  - enabled: 1
+    path: Assets/Scenes/Prisma_Skill_Tree.unity
+    guid: fcce1febc52509b4db3743c6d767f74d
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 3590b91b4603b465dbb4216d601bff33, type: 3}

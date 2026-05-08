@@ -28,4 +28,15 @@ public class BuildingsConfig : MonoBehaviour
         return UserProgressManager.Instance.GetTotalSkillEffect(
             SkillEffectType.BuildingCostReduction, buildingsSkillTree);
     }
+
+    /// <summary>
+    /// Hány ellenfél adatát mutatja a SpyTower (skill szint = darabszám, min. 1).
+    /// </summary>
+    public int GetSpyRevealCount()
+    {
+        if (buildingsSkillTree == null || UserProgressManager.Instance == null) return 1;
+        int count = Mathf.RoundToInt(UserProgressManager.Instance.GetTotalSkillEffect(
+            SkillEffectType.SpyRevealCount, buildingsSkillTree));
+        return Mathf.Max(1, count);
+    }
 }

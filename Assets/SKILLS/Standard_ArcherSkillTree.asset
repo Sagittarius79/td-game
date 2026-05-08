@@ -51,7 +51,7 @@ MonoBehaviour:
     effectValuePerLevel: 2
   - id: Castle_HP
     displayName: Caste + Lvl 2 Unlock
-    description: +5 HP to the Castle
+    description: +10 HP to the Castle
     icon: {fileID: 0}
     maxLevel: 20
     costPerLevel: 1
@@ -62,7 +62,7 @@ MonoBehaviour:
     - Standard_Archer_Attack_dmg
     - Standard_Attack_Range
     effectType: 12
-    effectValuePerLevel: 5
+    effectValuePerLevel: 10
   - id: Unlock_archer_lvl2
     displayName: Unlock Archer Tower Lvl 2
     description: 'Unlock Lvl2 Archer Tower + Lvl2 Skill Tree '

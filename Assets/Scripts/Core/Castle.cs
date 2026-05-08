@@ -29,8 +29,11 @@ public class Castle : MonoBehaviour
 
     // ── HP Regen ─────────────────────────────────────────────────────
     private const float REGEN_INTERVAL = 30f;
-    private float _regenTimer = 0f;
-    private int   _regenAmount = 0;
+    private float _regenTimer    = 0f;
+    public  float RegenTimer     => _regenTimer;
+    private int   _regenAmount   = 0;
+    private int   _overRegenAmount = 0;
+    public  int   RegenAmount => _regenAmount;
 
     void Awake()
     {
@@ -59,10 +62,15 @@ public class Castle : MonoBehaviour
 
             _regenAmount = (int)UserProgressManager.Instance.GetTotalSkillEffect(
                 SkillEffectType.BuildingHPRegen, buildingsCfg.buildingsSkillTree);
+
+            _overRegenAmount = (int)UserProgressManager.Instance.GetTotalSkillEffect(
+                SkillEffectType.BuildingHPOverRegen, buildingsCfg.buildingsSkillTree);
         }
 
         currentHealth = maxHealth;
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
+        NetworkGameManager.Instance?.BroadcastCastleHp(currentHealth);
+        Invoke(nameof(BroadcastHpDelayed), 10f);
 
         // Csak akkor pozicionálja magát, ha a GridManager létezik
         if (GridManager.Instance != null)
@@ -82,16 +90,69 @@ public class Castle : MonoBehaviour
         }
     }
 
+    void BroadcastHpDelayed() => NetworkGameManager.Instance?.BroadcastCastleHp(currentHealth);
+
     void Update()
     {
-        if (_regenAmount <= 0 || currentHealth <= 0 || currentHealth >= maxHealth) return;
+        if (_regenAmount <= 0 && _overRegenAmount <= 0) return;
 
         _regenTimer += Time.deltaTime;
         if (_regenTimer >= REGEN_INTERVAL)
         {
             _regenTimer = 0f;
-            currentHealth = Mathf.Min(maxHealth, currentHealth + _regenAmount);
-            OnHealthChanged?.Invoke(currentHealth, maxHealth);
+
+            if (_regenAmount > 0)
+            {
+                // Pool-alapú gyógyítás: először kastély, maradékból tornyok sorban
+                int pool = _regenAmount;
+
+                int castleHeal = 0;
+                if (currentHealth > 0 && currentHealth < maxHealth)
+                {
+                    castleHeal = Mathf.Min(pool, maxHealth - currentHealth);
+                    pool -= castleHeal;
+                }
+
+                var towerHeals = new System.Collections.Generic.List<(Tower t, int amount)>();
+                foreach (var tower in Tower.AllTowers)
+                {
+                    if (pool <= 0) break;
+                    if (tower == null || tower.IsDead || tower.HealthPercent >= 1f) continue;
+                    int heal = Mathf.Min(pool, Mathf.RoundToInt(tower.maxHealth - tower.CurrentHealth));
+                    if (heal <= 0) continue;
+                    towerHeals.Add((tower, heal));
+                    pool -= heal;
+                }
+
+                int totalHeal = _regenAmount - pool;
+
+                // Csak akkor gyógyítunk ha van elég gold
+                if (totalHeal > 0 && GameManager.Instance != null &&
+                    GameManager.Instance.CanAfford(totalHeal))
+                {
+                    GameManager.Instance.SpendGold(totalHeal);
+
+                    // Kastély gyógyítás
+                    if (castleHeal > 0)
+                    {
+                        currentHealth = Mathf.Min(maxHealth, currentHealth + castleHeal);
+                        OnHealthChanged?.Invoke(currentHealth, maxHealth);
+                    }
+
+                    // Torony gyógyítás sorban
+                    foreach (var (tower, amount) in towerHeals)
+                        tower.Heal(amount);
+                }
+            }
+
+            // Over regen: ha teli van a kastély, nő a max HP
+            if (_overRegenAmount > 0 && currentHealth > 0 && currentHealth >= maxHealth)
+            {
+                maxHealth     += _overRegenAmount;
+                currentHealth  = maxHealth;
+                OnHealthChanged?.Invoke(currentHealth, maxHealth);
+            }
+
         }
     }
 
@@ -102,6 +163,7 @@ public class Castle : MonoBehaviour
         currentHealth -= damage;
         currentHealth = Mathf.Max(0, currentHealth);
         OnHealthChanged?.Invoke(currentHealth, maxHealth);
+        NetworkGameManager.Instance?.BroadcastCastleHp(currentHealth);
 
         AudioManager.Instance?.PlaySFX(hitSound);
 

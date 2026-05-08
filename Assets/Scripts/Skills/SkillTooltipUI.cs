@@ -112,7 +112,7 @@ public class SkillTooltipUI : MonoBehaviour
         if (value == 0f) return "0";
         string numStr = (value == Mathf.Floor(value))
             ? ((int)value).ToString()
-            : value.ToString("F1");
+            : value.ToString("F2");
 
         return IsPercentType(type) ? $"+{numStr}%" : $"+{numStr}";
     }

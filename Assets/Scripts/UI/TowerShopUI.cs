@@ -18,6 +18,7 @@ public class TowerShopUI : MonoBehaviour
     private SpriteRenderer ghostRenderer;
     private Vector2Int hoveredCell;
     private bool isValidPlacement;
+    private int _dragStartFrame = -1;  // frame delay: az indító kattintás ne zárja le azonnal
 
     void Awake()
     {
@@ -59,8 +60,9 @@ public class TowerShopUI : MonoBehaviour
             return;
         }
 
-        selectedTower = def;
-        isDragging    = true;
+        selectedTower   = def;
+        isDragging      = true;
+        _dragStartFrame = Time.frameCount;
 
         // Épités menü bezárása – hogy a pálya látható legyen
         if (BuildMenuUI.Instance != null)
@@ -68,9 +70,19 @@ public class TowerShopUI : MonoBehaviour
 
         ghostObject   = new GameObject("PlacementGhost");
         ghostRenderer = ghostObject.AddComponent<SpriteRenderer>();
-        ghostRenderer.sprite       = def.sprite;
         ghostRenderer.sortingOrder = 100;
-        ghostRenderer.color        = validColor;
+
+        if (def.sprite != null)
+        {
+            ghostRenderer.sprite = def.sprite;
+            ghostRenderer.color  = validColor;
+        }
+        else
+        {
+            // Fallback: fehér négyzet, ha nincs sprite bekötve
+            ghostRenderer.sprite = CreateFallbackSprite();
+            ghostRenderer.color  = new Color(1f, 1f, 0f, 0.7f);  // sárga, jól látható
+        }
     }
 
     void HandleDragInput()
@@ -143,7 +155,10 @@ public class TowerShopUI : MonoBehaviour
 
         var tower = towerGO.GetComponent<Tower>();
         if (tower != null)
+        {
             tower.PlaceAt(cell);
+            NetworkGameManager.Instance?.BroadcastTowerPlaced(selectedTower.towerName);
+        }
 
         var decorator = FindFirstObjectByType<MapDecorator>();
         if (decorator != null)
@@ -153,6 +168,16 @@ public class TowerShopUI : MonoBehaviour
     }
 
     void CancelDragging() => CleanupDrag();
+
+    static Sprite CreateFallbackSprite()
+    {
+        var tex = new Texture2D(32, 32);
+        var pixels = new Color[32 * 32];
+        for (int i = 0; i < pixels.Length; i++) pixels[i] = Color.white;
+        tex.SetPixels(pixels);
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, 32, 32), new Vector2(0.5f, 0.5f), 32f);
+    }
 
     void CleanupDrag()
     {
@@ -184,6 +209,11 @@ public class TowerShopUI : MonoBehaviour
 
     Vector2 GetScreenPosition()
     {
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // WebGL-en a legacy Input.mousePosition megbízhatóbb:
+        // garantáltan Unity screen-koordinátákban adja vissza a pozíciót
+        return Input.mousePosition;
+#endif
         // Érintés (mobil)
         var touchscreen = Touchscreen.current;
         if (touchscreen != null && touchscreen.touches.Count > 0)
@@ -199,13 +229,22 @@ public class TowerShopUI : MonoBehaviour
 
     bool IsInputReleased()
     {
-        // Érintés elengedés
+        // Az indító kattintás ne zárja le azonnal a draget (frame delay)
+        if (Time.frameCount <= _dragStartFrame + 1) return false;
+
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // WebGL-en GetMouseButtonDown megbízhatóbb mint wasReleasedThisFrame:
+        // a következő bal klikk lenyomásakor rakja le a tornyot
+        return Input.GetMouseButtonDown(0);
+#endif
+
+        // Érintés elengedés (mobil)
         var touchscreen = Touchscreen.current;
         if (touchscreen != null && touchscreen.touches.Count > 0)
             return touchscreen.touches[0].phase.ReadValue() ==
                    UnityEngine.InputSystem.TouchPhase.Ended;
 
-        // Egér elengedés
+        // Egér elengedés (Editor / PC)
         var mouse = Mouse.current;
         if (mouse != null)
             return mouse.leftButton.wasReleasedThisFrame;

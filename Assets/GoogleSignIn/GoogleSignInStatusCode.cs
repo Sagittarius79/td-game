@@ -1,3 +1,4 @@
+#if !UNITY_WEBGL
 ﻿// <copyright file="GoogleSignInStatusCode.cs" company="Google Inc.">
 // Copyright (C) 2017 Google Inc. All Rights Reserved.
 //
@@ -70,3 +71,4 @@ namespace Google {
   }
 }  // namespace GoogleSignIn
 
+#endif // !UNITY_WEBGL

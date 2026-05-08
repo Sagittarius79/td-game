@@ -1,0 +1,502 @@
+fileFormatVersion: 2
+guid: ecfbce8676833bc49b99014217ae1703
+TextureImporter:
+  internalIDToNameTable:
+  - first:
+      213: 5336337335459587018
+    second: "Stone_Giant_1_hal\xE1l_0"
+  - first:
+      213: -1183980085669978340
+    second: "Stone_Giant_1_hal\xE1l_1"
+  - first:
+      213: 2512442343336870510
+    second: "Stone_Giant_1_hal\xE1l_2"
+  - first:
+      213: 4443188925889159190
+    second: "Stone_Giant_1_hal\xE1l_3"
+  - first:
+      213: -7199212231655115520
+    second: "Stone_Giant_1_hal\xE1l_4"
+  - first:
+      213: 6888978976306826336
+    second: "Stone_Giant_1_hal\xE1l_5"
+  - first:
+      213: -6710206277848695922
+    second: "Stone_Giant_1_hal\xE1l_6"
+  - first:
+      213: 4710389380712415913
+    second: "Stone_Giant_1_hal\xE1l_7"
+  - first:
+      213: -4781877612044699527
+    second: "Stone_Giant_1_hal\xE1l_8"
+  - first:
+      213: 1956100532421727070
+    second: "Stone_Giant_1_hal\xE1l_9"
+  - first:
+      213: 4929822486036852893
+    second: "Stone_Giant_1_hal\xE1l_10"
+  - first:
+      213: -7066214114655151990
+    second: "Stone_Giant_1_hal\xE1l_11"
+  - first:
+      213: 1210153692716736821
+    second: "Stone_Giant_1_hal\xE1l_12"
+  - first:
+      213: -2482753067800434641
+    second: "Stone_Giant_1_hal\xE1l_13"
+  - first:
+      213: 3644344976716253269
+    second: "Stone_Giant_1_hal\xE1l_14"
+  - first:
+      213: -8106932009328679286
+    second: "Stone_Giant_1_hal\xE1l_15"
+  - first:
+      213: -1806508790131008811
+    second: "Stone_Giant_1_hal\xE1l_16"
+  - first:
+      213: -1571012025133145631
+    second: "Stone_Giant_1_hal\xE1l_17"
+  - first:
+      213: 8980351341216649736
+    second: "Stone_Giant_1_hal\xE1l_18"
+  - first:
+      213: -5177757023471015502
+    second: "Stone_Giant_1_hal\xE1l_19"
+  - first:
+      213: 380432498850579577
+    second: "Stone_Giant_1_hal\xE1l_20"
+  - first:
+      213: 1713508252420826852
+    second: "Stone_Giant_1_hal\xE1l_21"
+  - first:
+      213: -3580389169061731532
+    second: "Stone_Giant_1_hal\xE1l_22"
+  - first:
+      213: -7191770709674825492
+    second: "Stone_Giant_1_hal\xE1l_23"
+  - first:
+      213: -7802218031593392454
+    second: "Stone_Giant_1_hal\xE1l_24"
+  - first:
+      213: 8635324036063814902
+    second: "Stone_Giant_1_hal\xE1l_25"
+  - first:
+      213: 3435620240732183586
+    second: "Stone_Giant_1_hal\xE1l_26"
+  - first:
+      213: -2831635685207147456
+    second: "Stone_Giant_1_hal\xE1l_27"
+  - first:
+      213: 2935141293677293303
+    second: "Stone_Giant_1_hal\xE1l_28"
+  - first:
+      213: -3305062563988875854
+    second: "Stone_Giant_1_hal\xE1l_29"
+  - first:
+      213: -1055707496279749643
+    second: "Stone_Giant_1_hal\xE1l_30"
+  - first:
+      213: -6117200236243051471
+    second: "Stone_Giant_1_hal\xE1l_31"
+  - first:
+      213: 1708653910466078367
+    second: "Stone_Giant_1_hal\xE1l_32"
+  - first:
+      213: -1689180634908278790
+    second: "Stone_Giant_1_hal\xE1l_33"
+  - first:
+      213: -3477556239872242957
+    second: "Stone_Giant_1_hal\xE1l_34"
+  - first:
+      213: 2223756202293238281
+    second: "Stone_Giant_1_hal\xE1l_35"
+  - first:
+      213: -8258894833786039592
+    second: "Stone_Giant_1_hal\xE1l_36"
+  - first:
+      213: -1505103971860868101
+    second: "Stone_Giant_1_hal\xE1l_37"
+  - first:
+      213: 5177290506787734310
+    second: "Stone_Giant_1_hal\xE1l_38"
+  - first:
+      213: -5920043101750234649
+    second: "Stone_Giant_1_hal\xE1l_39"
+  - first:
+      213: 5546745839624775970
+    second: "Stone_Giant_1_hal\xE1l_40"
+  - first:
+      213: 5601953453881945108
+    second: "Stone_Giant_1_hal\xE1l_41"
+  - first:
+      213: 4934879166077295700
+    second: "Stone_Giant_1_hal\xE1l_42"
+  - first:
+      213: -6810364917582599441
+    second: "Stone_Giant_1_hal\xE1l_43"
+  - first:
+      213: -6441385112249755893
+    second: "Stone_Giant_1_hal\xE1l_44"
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 0
+    sRGBTexture: 1
+    linearTexture: 0
+    fadeOut: 0
+    borderMipMap: 0
+    mipMapsPreserveCoverage: 0
+    alphaTestReferenceValue: 0.5
+    mipMapFadeDistanceStart: 1
+    mipMapFadeDistanceEnd: 3
+  bumpmap:
+    convertToNormalMap: 0
+    externalNormalMap: 0
+    heightScale: 0.25
+    normalMapFilter: 0
+    flipGreenChannel: 0
+  isReadable: 0
+  streamingMipmaps: 0
+  streamingMipmapsPriority: 0
+  vTOnly: 0
+  ignoreMipmapLimit: 0
+  grayScaleToAlpha: 0
+  generateCubemap: 6
+  cubemapConvolution: 0
+  seamlessCubemap: 0
+  textureFormat: 1
+  maxTextureSize: 2048
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  lightmap: 0
+  compressionQuality: 50
+  spriteMode: 2
+  spriteExtrude: 1
+  spriteMeshType: 1
+  alignment: 0
+  spritePivot: {x: 0.5, y: 0.5}
+  spritePixelsToUnits: 200
+  spriteBorder: {x: 0, y: 0, z: 0, w: 0}
+  spriteGenerateFallbackPhysicsShape: 1
+  alphaUsage: 1
+  alphaIsTransparency: 1
+  spriteTessellationDetail: -1
+  textureType: 8
+  textureShape: 1
+  singleChannelComponent: 0
+  flipbookRows: 1
+  flipbookColumns: 1
+  maxTextureSizeSet: 0
+  compressionQualitySet: 0
+  textureFormatSet: 0
+  ignorePngGamma: 0
+  applyGammaDecoding: 0
+  swizzle: 50462976
+  cookieLightType: 0
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Standalone
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  spriteSheet:
+    serializedVersion: 2
+    sprites:
+    - serializedVersion: 2
+      name: "Stone_Giant_1_hal\xE1l_0"
+      rect:
+        serializedVersion: 2
+        x: 0
+        y: 0
+        width: 315
+        height: 369
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: ac329b1988a7e0a40800000000000000
+      internalID: 5336337335459587018
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "Stone_Giant_1_hal\xE1l_1"
+      rect:
+        serializedVersion: 2
+        x: 315
+        y: 0
+        width: 315
+        height: 369
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: c1f11849268a19fe0800000000000000
+      internalID: -1183980085669978340
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "Stone_Giant_1_hal\xE1l_2"
+      rect:
+        serializedVersion: 2
+        x: 630
+        y: 0
+        width: 315
+        height: 369
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e628e31fffcfdd220800000000000000
+      internalID: 2512442343336870510
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "Stone_Giant_1_hal\xE1l_3"
+      rect:
+        serializedVersion: 2
+        x: 945
+        y: 0
+        width: 315
+        height: 369
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 610a29d79c069ad30800000000000000
+      internalID: 4443188925889159190
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "Stone_Giant_1_hal\xE1l_4"
+      rect:
+        serializedVersion: 2
+        x: 1260
+        y: 0
+        width: 315
+        height: 369
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 005bc8d4e92471c90800000000000000
+      internalID: -7199212231655115520
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "Stone_Giant_1_hal\xE1l_5"
+      rect:
+        serializedVersion: 2
+        x: 1575
+        y: 0
+        width: 315
+        height: 369
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 06c07eb21e19a9f50800000000000000
+      internalID: 6888978976306826336
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "Stone_Giant_1_hal\xE1l_6"
+      rect:
+        serializedVersion: 2
+        x: 1890
+        y: 0
+        width: 315
+        height: 369
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: e8b7b3741fe80e2a0800000000000000
+      internalID: -6710206277848695922
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "Stone_Giant_1_hal\xE1l_7"
+      rect:
+        serializedVersion: 2
+        x: 2205
+        y: 0
+        width: 315
+        height: 369
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 9a2c22f5f2aae5140800000000000000
+      internalID: 4710389380712415913
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    - serializedVersion: 2
+      name: "Stone_Giant_1_hal\xE1l_8"
+      rect:
+        serializedVersion: 2
+        x: 2520
+        y: 0
+        width: 315
+        height: 369
+      alignment: 7
+      pivot: {x: 0.5, y: 0}
+      border: {x: 0, y: 0, z: 0, w: 0}
+      customData: 
+      outline: []
+      physicsShape: []
+      tessellationDetail: -1
+      bones: []
+      spriteID: 978bea6b5ab53adb0800000000000000
+      internalID: -4781877612044699527
+      vertices: []
+      indices: 
+      edges: []
+      weights: []
+    outline: []
+    customData: 
+    physicsShape: []
+    bones: []
+    spriteID: 86ebaae683bf347478b88a56fac93a3a
+    internalID: 0
+    vertices: []
+    indices: 
+    edges: []
+    weights: []
+    secondaryTextures: []
+    spriteCustomMetadata:
+      entries:
+      - key: SpriteEditor.SliceOnImport
+        value: False
+      - key: SpriteEditor.SliceSettings
+        value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":315.0,"y":369.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.0},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":7,"pivotUnitMode":0,"slicingType":1,"keepEmptyRects":false,"isAlternate":false}'
+    nameFileIdTable:
+      "Stone_Giant_1_hal\xE1l_0": 5336337335459587018
+      "Stone_Giant_1_hal\xE1l_1": -1183980085669978340
+      "Stone_Giant_1_hal\xE1l_2": 2512442343336870510
+      "Stone_Giant_1_hal\xE1l_3": 4443188925889159190
+      "Stone_Giant_1_hal\xE1l_4": -7199212231655115520
+      "Stone_Giant_1_hal\xE1l_5": 6888978976306826336
+      "Stone_Giant_1_hal\xE1l_6": -6710206277848695922
+      "Stone_Giant_1_hal\xE1l_7": 4710389380712415913
+      "Stone_Giant_1_hal\xE1l_8": -4781877612044699527
+  mipmapLimitGroupName: 
+  pSDRemoveMatte: 0
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 

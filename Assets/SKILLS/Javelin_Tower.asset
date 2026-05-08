@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54d5d29b10be90e40ba3386a48a10b03, type: 3}
+  m_Name: Javelin_Tower
+  m_EditorClassIdentifier: Assembly-CSharp::SkillTreeDefinition
+  treeName: Javelin Tower
+  skillPointsPerLevel: 1
+  nodes:
+  - id: Javelin_Unlock
+    displayName: Unlock Javelin Tower
+    description: Unlock Javelin Tower
+    icon: {fileID: 0}
+    maxLevel: 1
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites: []
+    effectType: 0
+    effectValuePerLevel: 0
+    fixedCostPerLevel: 5
+    minCharacterLevel: 10
+  - id: Javelin_DMG
+    displayName: Javelin DMG Boost
+    description: +10 Physical DMG to Javelin / SKILL
+    icon: {fileID: 0}
+    maxLevel: 40
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites:
+    - Javelin_Unlock
+    effectType: 32
+    effectValuePerLevel: 10
+    fixedCostPerLevel: 0
+    minCharacterLevel: 1
+  - id: Javelin_Crit_Chance
+    displayName: Javelin Crit Chance
+    description: +5% Crit Chance to Javelin / SKILL
+    icon: {fileID: 0}
+    maxLevel: 16
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites:
+    - Javelin_DMG
+    effectType: 34
+    effectValuePerLevel: 5
+    fixedCostPerLevel: 0
+    minCharacterLevel: 1
+  - id: Javelin_Charge_Speed
+    displayName: Javelin Charge Speed Boost
+    description: -1 sec Charge Time Javelin / SKILL
+    icon: {fileID: 0}
+    maxLevel: 5
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites:
+    - Javelin_Crit_Chance
+    effectType: 37
+    effectValuePerLevel: 0.01
+    fixedCostPerLevel: 5
+    minCharacterLevel: 1

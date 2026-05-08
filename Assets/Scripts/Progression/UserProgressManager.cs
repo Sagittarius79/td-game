@@ -305,6 +305,23 @@ public class UserProgressManager : MonoBehaviour
     }
 
     /// <summary>
+    /// Az adott skill fában összesen elköltött skill pontok száma.
+    /// Minden csomópont minden szintje 1 pontnak számít (GetUpgradeCost alapján).
+    /// </summary>
+    public int GetTotalSpentPoints(SkillTreeDefinition tree)
+    {
+        if (_activeCharacter == null || tree == null) return 0;
+        int total = 0;
+        foreach (var node in tree.nodes)
+        {
+            int level = GetSkillLevel(node.id);
+            for (int i = 0; i < level; i++)
+                total += node.GetUpgradeCost(i);
+        }
+        return total;
+    }
+
+    /// <summary>
     /// Az adott effect típushoz tartozó összes skill bónusz összege.
     /// Pl. GetTotalSkillEffect(SkillEffectType.CritHitChance, archerTree) → 3.0 = 3%
     /// </summary>
@@ -326,6 +343,7 @@ public class UserProgressManager : MonoBehaviour
     {
         var def = tree.GetNode(nodeId);
         if (def == null) return false;
+        if (Level < def.minCharacterLevel) return false;
         foreach (string prereq in def.prerequisites)
             if (GetSkillLevel(prereq) < 1) return false;
         return true;
@@ -337,9 +355,10 @@ public class UserProgressManager : MonoBehaviour
         if (_activeCharacter == null) return false;
         var def = tree.GetNode(nodeId);
         if (def == null) return false;
+        if (Level < def.minCharacterLevel) return false;
         int currentLevel = GetSkillLevel(nodeId);
         if (currentLevel >= def.maxLevel) return false;
-        if (_activeCharacter.availableSkillPoints < SkillNodeDefinition.GetUpgradeCost(currentLevel)) return false;
+        if (_activeCharacter.availableSkillPoints < def.GetUpgradeCost(currentLevel)) return false;
         foreach (string prereq in def.prerequisites)
             if (GetSkillLevel(prereq) < 1) return false;
         return true;
@@ -352,7 +371,7 @@ public class UserProgressManager : MonoBehaviour
 
         var def          = tree.GetNode(nodeId);
         int currentLevel = GetSkillLevel(nodeId);
-        int cost         = SkillNodeDefinition.GetUpgradeCost(currentLevel);
+        int cost         = def.GetUpgradeCost(currentLevel);
 
         _activeCharacter.availableSkillPoints -= cost;
 
@@ -395,7 +414,7 @@ public class UserProgressManager : MonoBehaviour
                     return false;   // más skill függ tőle, nem lehet levenni
         }
 
-        int refund = SkillNodeDefinition.GetUpgradeCost(save.currentLevel - 1);
+        int refund = def.GetUpgradeCost(save.currentLevel - 1);
         save.currentLevel--;
         _activeCharacter.availableSkillPoints += refund;
         SaveActiveCharacter();

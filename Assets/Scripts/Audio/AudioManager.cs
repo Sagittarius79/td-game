@@ -90,17 +90,24 @@ public class AudioManager : MonoBehaviour
 
         if (tracks != null && tracks.Length > 0)
         {
-            // Ha más lista aktiválódik (menü ↔ játék váltás), indítunk egy új számot
             bool listChanged = tracks != _activeTracks;
             _activeTracks = tracks;
 
-            if (listChanged) _currentTrackIndex = -1;
-
-            StartCoroutine(PlayAfterSceneReady());
+            if (listChanged)
+            {
+                // Menü ↔ játék váltás: új listát kezdünk
+                _currentTrackIndex = -1;
+                StartCoroutine(PlayAfterSceneReady());
+            }
+            else if (!_musicSource.isPlaying)
+            {
+                // Ugyanaz a lista, de valami miatt nem szól – folytatjuk
+                StartCoroutine(PlayAfterSceneReady());
+            }
+            // Ha ugyanaz a lista és már szól → nem nyúlunk hozzá
         }
         else
         {
-            // Nincs zene ebben a scene-ben
             _activeTracks = null;
             StopMusic();
         }

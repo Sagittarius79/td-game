@@ -1,3 +1,4 @@
+#if !UNITY_WEBGL
 ﻿// <copyright file="GoogleSignIn.cs" company="Google Inc.">
 // Copyright (C) 2017 Google Inc. All Rights Reserved.
 //
@@ -200,3 +201,5 @@ namespace Google {
     void Disconnect();
   }
 }  // namespace Google
+
+#endif // !UNITY_WEBGL

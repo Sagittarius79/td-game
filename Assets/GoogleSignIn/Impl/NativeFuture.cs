@@ -1,3 +1,4 @@
+#if !UNITY_WEBGL
 ﻿// <copyright file="NativeFuture.cs" company="Google Inc.">
 // Copyright (C) 2017 Google Inc. All Rights Reserved.
 //
@@ -100,3 +101,5 @@ namespace Google.Impl {
     }
   }
 }
+
+#endif // !UNITY_WEBGL

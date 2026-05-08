@@ -104,17 +104,43 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1f1da56c90455274698cd9bd6d1dfc39, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Projectile
+  projectileTag: Arrow
+  canHitFlying: 1
   moveSpeed: 8
   maxLifetime: 5
   impactEffect: {fileID: 0}
   impactOffset: {x: 0, y: 0, z: 0}
   teleportOnHit: 0
-  canCrit: 1
+  pullOnHit: 0
+  pullRadius: 2
+  pullForce: 3
+  pullDuration: 0.4
+  applyPoison: 0
+  poisonDamagePerSecond: 1
+  poisonDuration: 5
+  maxPoisonStacks: 3
+  poisonVfxPrefab: {fileID: 0}
+  applyBurning: 0
+  burnDamagePerSecond: 5
+  burnDuration: 5
+  burnIsAOE: 0
+  burnAOERadius: 1.5
+  burnVfxPrefab: {fileID: 0}
+  canPlaceTrap: 1
+  trapPrefab: {fileID: 6534934977582527166, guid: 3cb06293aa2f9d544b26906d43215e82, type: 3}
+  trapDamage: 20
+  stoneDmgBonus: 0
+  stoneAOEBonus: 0
+  canCrit: 0
   critDamagePercent: 150
-  canDestroyArmor: 1
-  canMultiShot: 1
-  multiShotCount: 2
-  archerRangeBonus: 1
-  canStun: 1
-  stunDuration: 3
+  canDestroyArmor: 0
+  canMultiShot: 0
+  multiShotCount: 3
+  archerRangeBonus: 0
+  canStun: 0
+  stunDuration: 0.5
+  stoneCanCrit: 0
+  stoneFocusBonus: 0
+  stoneMagicAOEDmgBonus: 0
+  stoneChargeDmgBonus: 0
   damageType: 0

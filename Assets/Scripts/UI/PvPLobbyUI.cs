@@ -51,6 +51,12 @@ public class PvPLobbyUI : MonoBehaviour
     public TextMeshProUGUI waitStatusText;
     public Button          waitLeaveButton;
 
+    // ── Hangok ───────────────────────────────────────────────────────
+
+    [Header("Hangok")]
+    [Tooltip("Lejátssza amikor PvP meccs indul")]
+    public AudioClip pvpStartSound;
+
     // ── Auto Lobby beállítások ────────────────────────────────────────
 
     [Header("Auto Lobby")]
@@ -278,18 +284,19 @@ public class PvPLobbyUI : MonoBehaviour
             bool done = false;
 
             MatchmakingClient.Instance?.PollMatchmakingStatus(
-                onMatched: (host, port, matchId, playerCount) =>
+                onMatched: (host, port, matchId, playerCount, playerNames) =>
                 {
                     responseReceived = true;
                     done = true;
-                    SetWaitStatus($"Join... ({playerCount} Player)");
+                    SetWaitStatus($"Join... ({playerCount} Player)\n{FormatPlayerNames(playerNames)}");
+                    AudioManager.Instance?.PlaySFX(pvpStartSound);
                     NetworkGameManager.Instance?.StartClient(host, port);
                 },
-                onWaiting: (countdown, playerCount) =>
+                onWaiting: (countdown, playerCount, playerNames) =>
                 {
                     responseReceived = true;
                     localCountdown = countdown;
-                    SetWaitStatus($"Waiting: {countdown}s  |  Players: {playerCount}");
+                    SetWaitStatus($"Waiting: {countdown}s  |  Players: {playerCount}\n{FormatPlayerNames(playerNames)}");
                 },
                 onError: err =>
                 {
@@ -356,7 +363,7 @@ public class PvPLobbyUI : MonoBehaviour
         if (hostStartButton != null) hostStartButton.interactable = false;
 
         MatchmakingClient.Instance?.StartMatch(
-            onSuccess: () => NetworkGameManager.Instance?.RequestGameStart(),
+            onSuccess: () => { AudioManager.Instance?.PlaySFX(pvpStartSound); NetworkGameManager.Instance?.RequestGameStart(); },
             onError:   err =>
             {
                 if (hostStatusText != null) hostStatusText.text = $"Hiba: {err}";
@@ -403,6 +410,12 @@ public class PvPLobbyUI : MonoBehaviour
     void SetWaitStatus(string msg)
     {
         if (waitStatusText != null) waitStatusText.text = msg;
+    }
+
+    string FormatPlayerNames(string[] names)
+    {
+        if (names == null || names.Length == 0) return "";
+        return string.Join("\n", names);
     }
 
     void ShowPanel(GameObject show)

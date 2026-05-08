@@ -31,7 +31,19 @@
       "Bash(tasklist)",
       "Read(//kakaoo-szerver2/munka/**)",
       "Bash(python -)",
-      "PowerShell(python C:\\\\Users\\\\komor\\\\AppData\\\\Local\\\\Temp\\\\check_db.py)"
+      "PowerShell(python C:\\\\Users\\\\komor\\\\AppData\\\\Local\\\\Temp\\\\check_db.py)",
+      "Bash(cmd /c \"dir \\\\\\\\\\\\\\\\kakaoo-szerver2\\\\\\\\munka\\\\\\\\Pvp /b /a-d\")",
+      "PowerShell(cd \"E:\\\\Unity\\\\TD\"; git diff HEAD~1 -- Assets/Scenes/pvplobby.unity Assets/Scenes/SampleScene.unity Assets/Scenes/MainMenu.unity 2>&1 | Select-Object -First 300)",
+      "Bash(taskkill /F /IM python.exe)",
+      "Bash(start \"\" cmd /c \"venv/Scripts/python.exe -m uvicorn main:app --host 0.0.0.0 --port 8080 > logs/server.log 2>&1\")",
+      "Bash(X:/Pvp/venv/Scripts/python.exe -c \"import sys; print\\(sys.version\\)\")",
+      "Bash(curl -v \"https://kakaoo123.asuscomm.com/api/leaderboard?limit=5\")",
+      "Bash(sqlite3 leaderboard.db \"SELECT player_id, character_id, character_name, elo FROM characters ORDER BY character_name, elo DESC;\")",
+      "Bash(sqlite3 leaderboard.db \"SELECT character_id, character_name, updated_at FROM characters WHERE character_name='SagiPC' ORDER BY updated_at DESC;\")",
+      "Bash(sqlite3 leaderboard.db \"DELETE FROM characters WHERE character_id='f8aeec58' AND player_id='102487434166399636733'; SELECT 'Törölve. Maradék SagiPC:', character_id FROM characters WHERE character_name='SagiPC';\")",
+      "Bash(sed -i 's/m_UiScaleMode: 0/m_UiScaleMode: 1/' \"E:/Unity/TD/Assets/Scenes/Buildings.unity\")",
+      "Bash(sed -i 's/m_ReferenceResolution: {x: 800, y: 600}/m_ReferenceResolution: {x: 1080, y: 1920}/' \"E:/Unity/TD/Assets/Scenes/Buildings.unity\")",
+      "Bash(git add *)"
     ]
   }
 }

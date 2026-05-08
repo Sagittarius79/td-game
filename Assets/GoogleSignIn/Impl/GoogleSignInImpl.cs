@@ -1,4 +1,5 @@
-﻿// <copyright file="GoogleSignInImpl.cs" company="Google Inc.">
+﻿#if !UNITY_WEBGL
+// <copyright file="GoogleSignInImpl.cs" company="Google Inc.">
 // Copyright (C) 2017 Google Inc. All Rights Reserved.
 //
 //  Licensed under the Apache License, Version 2.0 (the "License");
@@ -185,3 +186,5 @@ namespace Google.Impl {
     }
   }
 }
+
+#endif // !UNITY_WEBGL

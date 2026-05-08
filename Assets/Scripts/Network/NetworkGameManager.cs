@@ -64,6 +64,24 @@ public class NetworkGameManager : MonoBehaviour
         return "Player";
     }
 
+    /// <summary>True ha az id valós (névvel regisztrált) játékoshoz tartozik – nem szerver ghost.</summary>
+    public bool IsKnownPlayer(ulong clientId) => _playerNames.ContainsKey(clientId);
+
+    /// <summary>
+    /// Az összes ismert PvP játékos ID-ja, kivéve a megadott localId-t és a szervert.
+    /// A SpyTower pool alap-listájaként használja az OpponentDataTracker.
+    /// </summary>
+    public IEnumerable<ulong> GetKnownPvpPlayerIds(ulong localClientId)
+    {
+        foreach (var id in _playerNames.Keys)
+        {
+            if (id == localClientId) continue;
+            if (Unity.Netcode.NetworkManager.Singleton != null &&
+                id == Unity.Netcode.NetworkManager.ServerClientId) continue;
+            yield return id;
+        }
+    }
+
     /// <summary>Lobby UI-nak: szám frissítésekor hívódik meg (csatlakozott játékosok száma).</summary>
     public System.Action<int> OnPlayerCountChanged;
 
@@ -122,6 +140,9 @@ public class NetworkGameManager : MonoBehaviour
     const string MSG_SENT_ENEMY_DELTA        = "NGM_SndDelta";
     const string MSG_RELAY_SENT_ENEMY_DELTA  = "NGM_RelaySndD";
     // ── Dedikált szerveres üzenetek ─────────────────────────────────
+    const string MSG_TOWER_PLACED            = "NGM_TowerPlaced";   // kliens → szerver → kliensek: torony lerakás
+    const string MSG_CASTLE_HP               = "NGM_CastleHp";     // kliens → szerver → kliensek: kastély HP
+    const string MSG_PLAYER_ELIMINATED       = "NGM_Eliminated";   // szerver → kliensek: játékos kiesett
     const string MSG_REQUEST_START           = "NGM_ReqStart";   // room owner → szerver: indítás kérés
     const string MSG_ROOM_OWNER              = "NGM_RoomOwner";  // szerver → kliensek: room owner clientId
     const string MSG_PLAYER_COUNT           = "NGM_PCount";     // szerver → kliensek: jelenlegi játékosszám
@@ -147,7 +168,7 @@ public class NetworkGameManager : MonoBehaviour
 
     void Awake()
     {
-        if (Instance != null && Instance != this) { Destroy(gameObject); return; }
+        if (Instance != null && Instance != this) { Destroy(this); return; }
         Instance = this;
         DontDestroyOnLoad(gameObject);
         SceneManager.sceneLoaded += OnSceneLoaded;
@@ -182,6 +203,8 @@ public class NetworkGameManager : MonoBehaviour
     public void StartHost()
     {
         ResetRoundState();
+        _playerNames.Clear();
+        _googlePlayerIds.Clear();
         IsPvPMode    = true;
         _roomOwnerId = ulong.MaxValue;
 
@@ -203,6 +226,8 @@ public class NetworkGameManager : MonoBehaviour
     public void StartHostAsServer(ushort serverPort)
     {
         ResetRoundState();
+        _playerNames.Clear();
+        _googlePlayerIds.Clear();
         IsPvPMode    = true;
         _roomOwnerId = ulong.MaxValue;
 
@@ -231,6 +256,8 @@ public class NetworkGameManager : MonoBehaviour
     public void StartClient(string hostIP, ushort serverPort = 0)
     {
         ResetRoundState();
+        _playerNames.Clear();
+        _googlePlayerIds.Clear();
         IsPvPMode = true;
 
         ushort connectPort = serverPort > 0 ? serverPort : port;
@@ -343,6 +370,9 @@ public class NetworkGameManager : MonoBehaviour
         msg.UnregisterNamedMessageHandler(MSG_RELAY_WAVE_END_GOLD);
         msg.UnregisterNamedMessageHandler(MSG_SENT_ENEMY_DELTA);
         msg.UnregisterNamedMessageHandler(MSG_RELAY_SENT_ENEMY_DELTA);
+        msg.UnregisterNamedMessageHandler(MSG_TOWER_PLACED);
+        msg.UnregisterNamedMessageHandler(MSG_CASTLE_HP);
+        msg.UnregisterNamedMessageHandler(MSG_PLAYER_ELIMINATED);
         msg.UnregisterNamedMessageHandler(MSG_REQUEST_START);
         msg.UnregisterNamedMessageHandler(MSG_ROOM_OWNER);
         msg.UnregisterNamedMessageHandler(MSG_PLAYER_COUNT);
@@ -360,6 +390,9 @@ public class NetworkGameManager : MonoBehaviour
         msg.RegisterNamedMessageHandler(MSG_RELAY_WAVE_END_GOLD,    (_, reader)         => HandleRelayWaveEndGold(reader));
         msg.RegisterNamedMessageHandler(MSG_SENT_ENEMY_DELTA,       (_, reader)         => HandleSentEnemyDelta(reader));
         msg.RegisterNamedMessageHandler(MSG_RELAY_SENT_ENEMY_DELTA, (senderId, reader)  => HandleRelaySentEnemyDelta(senderId, reader));
+        msg.RegisterNamedMessageHandler(MSG_TOWER_PLACED,           (senderId, reader)  => HandleTowerPlaced(senderId, reader));
+        msg.RegisterNamedMessageHandler(MSG_CASTLE_HP,              (senderId, reader)  => HandleCastleHp(senderId, reader));
+        msg.RegisterNamedMessageHandler(MSG_PLAYER_ELIMINATED,      (_, reader)         => HandlePlayerEliminated(reader));
         msg.RegisterNamedMessageHandler(MSG_REQUEST_START,          (senderId, _)       => HandleRequestStart(senderId));
         msg.RegisterNamedMessageHandler(MSG_ROOM_OWNER,             (_, reader)         => HandleRoomOwner(reader));
         msg.RegisterNamedMessageHandler(MSG_PLAYER_COUNT,           (_, reader)         => HandlePlayerCount(reader));
@@ -373,12 +406,33 @@ public class NetworkGameManager : MonoBehaviour
         if (!NetworkManager.Singleton.IsHost) return;
 
         int count = GetRealPlayerCount_Server();
+
+        // Az első csatlakozó kliens jelzi az új lobby-session kezdetét – régi meccs adatait töröljük
+        if (count == 1)
+        {
+            _playerNames.Clear();
+            _googlePlayerIds.Clear();
+            Debug.Log("[NGM] Új lobby-session – playerNames/googlePlayerIds törölve");
+        }
+
         OnPlayerCountChanged?.Invoke(count);
         BroadcastPlayerCount(count);
         Debug.Log($"[NGM] Csatlakozott: {clientId} | Összes játékos: {count}");
 
         // Host elküldi a saját nevét az új kliensnek
         SendPlayerName(clientId);
+
+        // A már ismert játékosok neveit is elküldi az új kliensnek,
+        // hogy az IsKnownPlayer szűrő minden ellenfelet megtaláljon.
+        foreach (var kv in _playerNames)
+        {
+            if (kv.Key == clientId || kv.Key == NetworkManager.Singleton.LocalClientId) continue;
+            using var fwd = new FastBufferWriter(FixedString64Bytes.UTF8MaxLengthInBytes + 2 + 8, Allocator.Temp);
+            fwd.WriteValueSafe(new FixedString64Bytes(kv.Value));
+            fwd.WriteValueSafe(kv.Key);
+            NetworkManager.Singleton.CustomMessagingManager
+                .SendNamedMessage(MSG_PLAYER_NAME, clientId, fwd);
+        }
 
         // Az első valódi kliens (nem a szerver saját id-ja) lesz a room owner
         if (_roomOwnerId == ulong.MaxValue && clientId != NetworkManager.Singleton.LocalClientId)
@@ -603,6 +657,7 @@ public class NetworkGameManager : MonoBehaviour
         NetworkManager.Singleton.CustomMessagingManager
             .SendNamedMessageToAll(MSG_START_GAME, writer);
 
+        OpponentDataTracker.Instance?.Reset();
         LoadGameScene();
         // _matchStartTime beállítása UTÁN a ResetRoundState()-et hívó LoadGameScene(),
         // különben a reset visszaírja 0-ra és play_seconds mindig 0 lesz.
@@ -613,6 +668,7 @@ public class NetworkGameManager : MonoBehaviour
     {
         reader.ReadValueSafe(out int seed);
         SharedMapSeed = seed;
+        OpponentDataTracker.Instance?.Reset();
         Debug.Log($"[NGM] Map seed fogadva: {seed}");
         LoadGameScene();
     }
@@ -670,9 +726,13 @@ public class NetworkGameManager : MonoBehaviour
         if (wasAlive)
         {
             SendResultToClient(loserId, won: false, playersAlive: playersBeforeRemoval);
-            _eliminationOrder.Add(loserId);   // kiesési sorrend rögzítése (első = legrosszabb)
+            _eliminationOrder.Add(loserId);
         }
         _alivePlayers.Remove(loserId);
+
+        // Értesítjük a maradék klienseket, hogy távolítsák el a kiesett játékost a trackerből
+        if (wasAlive)
+            BroadcastPlayerEliminated(loserId);
 
         // Biztonsági szinkronizálás: ha bármilyen okból az _alivePlayers olyan
         // ID-kat tartalmaz, akik már nincsenek a ConnectedClients-ben (pl. egy
@@ -932,8 +992,10 @@ public class NetworkGameManager : MonoBehaviour
     void SendPlayerName(ulong targetClientId)
     {
         string localName = UserProgressManager.Instance?.CharacterName ?? "Player";
-        using var writer = new FastBufferWriter(FixedString64Bytes.UTF8MaxLengthInBytes + 2, Allocator.Temp);
+        ulong localId    = NetworkManager.Singleton.LocalClientId;
+        using var writer = new FastBufferWriter(FixedString64Bytes.UTF8MaxLengthInBytes + 2 + 8, Allocator.Temp);
         writer.WriteValueSafe(new FixedString64Bytes(localName));
+        writer.WriteValueSafe(localId);
         NetworkManager.Singleton.CustomMessagingManager
             .SendNamedMessage(MSG_PLAYER_NAME, targetClientId, writer);
     }
@@ -941,15 +1003,36 @@ public class NetworkGameManager : MonoBehaviour
     void HandlePlayerName(ulong senderId, FastBufferReader reader)
     {
         reader.ReadValueSafe(out FixedString64Bytes name);
+        reader.ReadValueSafe(out ulong originalId);
         string nameStr = name.ToString();
-        OpponentName = nameStr;
-        _playerNames[senderId] = nameStr;
-        Debug.Log($"[NGM] Játékos neve: {nameStr} (id: {senderId})");
 
-        if (!NetworkManager.Singleton.IsHost)
+        OpponentName             = nameStr;
+        _playerNames[originalId] = nameStr;
+        Debug.Log($"[NGM] Játékos neve: {nameStr} (id: {originalId})");
+
+        if (NetworkManager.Singleton.IsHost)
         {
-            SendPlayerName(NetworkManager.ServerClientId);
-            SendGooglePlayerId(NetworkManager.ServerClientId);
+            // Szerver: továbbítja a többi kliensnek (originalId már benne van az üzenetben)
+            foreach (var clientId in NetworkManager.Singleton.ConnectedClientsIds)
+            {
+                if (clientId == originalId || clientId == NetworkManager.ServerClientId) continue;
+                using var fwd = new FastBufferWriter(FixedString64Bytes.UTF8MaxLengthInBytes + 2 + 8, Allocator.Temp);
+                fwd.WriteValueSafe(name);
+                fwd.WriteValueSafe(originalId);
+                NetworkManager.Singleton.CustomMessagingManager
+                    .SendNamedMessage(MSG_PLAYER_NAME, clientId, fwd);
+            }
+        }
+        else
+        {
+            // Csak a host KÖZVETLEN bemutatkozására válaszolunk a saját nevünkkel.
+            // A szerver által TOVÁBBÍTOTT peer-nevekre tilos echózni, különben
+            // exponenciális broadcast-vihar keletkezik (3+ játékossal disconnect).
+            if (originalId == NetworkManager.ServerClientId)
+            {
+                SendPlayerName(NetworkManager.ServerClientId);
+                SendGooglePlayerId(NetworkManager.ServerClientId);
+            }
         }
     }
 
@@ -1347,5 +1430,116 @@ public class NetworkGameManager : MonoBehaviour
         }
         catch { }
         return "127.0.0.1";
+    }
+
+    // ── Játékos kiesés broadcast ─────────────────────────────────────
+
+    void BroadcastPlayerEliminated(ulong eliminatedId)
+    {
+        if (!NetworkManager.Singleton.IsHost) return;
+
+        using var writer = new FastBufferWriter(8, Allocator.Temp);
+        writer.WriteValueSafe(eliminatedId);
+
+        foreach (var clientId in NetworkManager.Singleton.ConnectedClientsIds)
+        {
+            if (clientId == NetworkManager.ServerClientId) continue;
+            NetworkManager.Singleton.CustomMessagingManager
+                .SendNamedMessage(MSG_PLAYER_ELIMINATED, clientId, writer);
+        }
+    }
+
+    void HandlePlayerEliminated(FastBufferReader reader)
+    {
+        reader.ReadValueSafe(out ulong eliminatedId);
+        OpponentDataTracker.Instance?.RemovePlayer(eliminatedId);
+        Debug.Log($"[SpyTower] Játékos kiesett, eltávolítva a trackerből: {eliminatedId}");
+    }
+
+    // ── Spy Tower: torony lerakás + kastély HP szinkronizálás ────────
+
+    /// <summary>
+    /// Kliens hívja torony lerakáskor – elküldi a szerver felé, onnan broadcast-ol a többi kliensnek.
+    /// </summary>
+    public void BroadcastTowerPlaced(string towerName)
+    {
+        if (!IsPvPMode || NetworkManager.Singleton == null) return;
+
+        // 4 (int hossz) + towerName.Length * 2 (UTF-16) + 8 (ulong clientId)
+        using var writer = new FastBufferWriter(4 + towerName.Length * 2 + 8, Allocator.Temp);
+        writer.WriteValueSafe(towerName);
+        writer.WriteValueSafe(NetworkManager.Singleton.LocalClientId);
+        NetworkManager.Singleton.CustomMessagingManager
+            .SendNamedMessage(MSG_TOWER_PLACED, NetworkManager.ServerClientId, writer);
+        Debug.Log($"[SpyTower] BroadcastTowerPlaced | tower={towerName} | localId={NetworkManager.Singleton.LocalClientId}");
+    }
+
+    void HandleTowerPlaced(ulong senderId, FastBufferReader reader)
+    {
+        reader.ReadValueSafe(out string towerName);
+        reader.ReadValueSafe(out ulong originalSender);
+
+        Debug.Log($"[SpyTower] HandleTowerPlaced | isHost={NetworkManager.Singleton.IsHost} | sender={originalSender} | tower={towerName} | tracker={(OpponentDataTracker.Instance != null ? "OK" : "NULL")}");
+
+        if (NetworkManager.Singleton.IsHost)
+        {
+            OpponentDataTracker.Instance?.RecordTowerPlaced(originalSender, towerName);
+
+            foreach (var clientId in NetworkManager.Singleton.ConnectedClientsIds)
+            {
+                if (clientId == originalSender || clientId == NetworkManager.ServerClientId) continue;
+                using var fwd = new FastBufferWriter(64, Allocator.Temp);
+                fwd.WriteValueSafe(towerName);
+                fwd.WriteValueSafe(originalSender);
+                NetworkManager.Singleton.CustomMessagingManager
+                    .SendNamedMessage(MSG_TOWER_PLACED, clientId, fwd);
+            }
+        }
+        else
+        {
+            // Kliens: rögzíti az ellenfél tornyát
+            OpponentDataTracker.Instance?.RecordTowerPlaced(originalSender, towerName);
+        }
+    }
+
+    /// <summary>
+    /// Castle hívja HP változáskor – szétküld minden kliensnek.
+    /// </summary>
+    public void BroadcastCastleHp(int hp)
+    {
+        if (!IsPvPMode || NetworkManager.Singleton == null) return;
+
+        using var writer = new FastBufferWriter(12, Allocator.Temp);
+        writer.WriteValueSafe(hp);
+        writer.WriteValueSafe(NetworkManager.Singleton.LocalClientId);
+        NetworkManager.Singleton.CustomMessagingManager
+            .SendNamedMessage(MSG_CASTLE_HP, NetworkManager.ServerClientId, writer);
+    }
+
+    void HandleCastleHp(ulong senderId, FastBufferReader reader)
+    {
+        reader.ReadValueSafe(out int hp);
+        reader.ReadValueSafe(out ulong originalSender);
+
+        Debug.Log($"[SpyTower] HandleCastleHp | isHost={NetworkManager.Singleton.IsHost} | sender={originalSender} | hp={hp} | tracker={(OpponentDataTracker.Instance != null ? "OK" : "NULL")}");
+
+        if (NetworkManager.Singleton.IsHost)
+        {
+            OpponentDataTracker.Instance?.RecordCastleHp(originalSender, hp);
+
+            foreach (var clientId in NetworkManager.Singleton.ConnectedClientsIds)
+            {
+                if (clientId == originalSender || clientId == NetworkManager.ServerClientId) continue;
+                using var fwd = new FastBufferWriter(12, Allocator.Temp);
+                fwd.WriteValueSafe(hp);
+                fwd.WriteValueSafe(originalSender);
+                NetworkManager.Singleton.CustomMessagingManager
+                    .SendNamedMessage(MSG_CASTLE_HP, clientId, fwd);
+            }
+        }
+        else
+        {
+            OpponentDataTracker.Instance?.RecordCastleHp(originalSender, hp);
+        }
     }
 }

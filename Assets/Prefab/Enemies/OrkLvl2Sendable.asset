@@ -13,7 +13,10 @@ MonoBehaviour:
   m_Name: OrkLvl2Sendable
   m_EditorClassIdentifier: Assembly-CSharp::SendableEnemyDefinition
   enemyName: Ork Lvl2
-  icon: {fileID: 6268121539269117222, guid: e4a5e00281092ca4b8b703d2e7f12b4c, type: 3}
+  icon: {fileID: 4988999727314350770, guid: d398e6b4e15cf3f4c81ed318ebe52a97, type: 3}
   goldCost: 50
   prefab: {fileID: 6345430543806320468, guid: 1bffca18c1333ae48a8a6b9297d6cb61, type: 3}
+  sendCount: 1
+  minSpawnDelay: 0.2
+  maxSpawnDelay: 0.5
   description: 

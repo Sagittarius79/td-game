@@ -18,7 +18,7 @@ GameObject:
   - component: {fileID: 3873816331233891627}
   m_Layer: 0
   m_Name: Rat
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -118,10 +118,20 @@ MonoBehaviour:
   spriteRenderer: {fileID: 2372702782504723514}
   deathEffect: {fileID: 7639616934462050572, guid: 0608bb017125cb4478f263577e9aa1f8, type: 3}
   healthBarRoot: {fileID: 0}
+  deathTrigger: 
+  deathStateTag: death
+  deathAnimTimeout: 3
   stunColor: {r: 0.4, g: 0.6, b: 1, a: 1}
-  stunEffectPrefab: {fileID: 0}
+  stunEffectPrefab: {fileID: 2672925459891620947, guid: 9673281826c36c94db1d5416195fc4c5, type: 3}
+  stunVfxOffset: {x: 0, y: 0, z: 0}
+  stunVfxScale: 1
   floatingDamageTextPrefab: {fileID: 6073548590437510050, guid: 8d0fe2c99d450df4f8d2989a1bb6a18f, type: 3}
   healthBarFill: {fileID: 1449960644631884161}
+  poisonVfxOffset: {x: 0, y: 0, z: 0}
+  poisonVfxScale: 1
+  fireVfxOffset: {x: 0, y: 1.5, z: 0}
+  fireVfxScale: 1
+  isFlying: 0
   canExplode: 0
   explosionRadius: 2
   explosionDamage: 30
@@ -314,7 +324,7 @@ Canvas:
   m_UseReflectionProbes: 0
   m_AdditionalShaderChannelsFlag: 0
   m_UpdateRectTransformForStandalone: 0
-  m_SortingLayerID: 0
+  m_SortingLayerID: 222305419
   m_SortingOrder: 0
   m_TargetDisplay: 0
 --- !u!114 &4259756791014865861

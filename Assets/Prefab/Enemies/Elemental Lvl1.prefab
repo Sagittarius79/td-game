@@ -17,7 +17,7 @@ GameObject:
   - component: {fileID: 2072825750021494774}
   m_Layer: 0
   m_Name: Elemental Lvl1
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -112,21 +112,33 @@ MonoBehaviour:
   maxHealth: 1000
   moveSpeed: 1.5
   damage: 0
+  immuneToProjectileTags: []
   armor: 0
   magicResist: 20
   spriteRenderer: {fileID: 2372702782504723514}
   deathEffect: {fileID: 0}
   healthBarRoot: {fileID: 0}
+  deathTrigger: 
+  deathStateTag: death
+  deathAnimTimeout: 3
   stunColor: {r: 0.4, g: 0.6, b: 1, a: 1}
-  stunEffectPrefab: {fileID: 0}
+  stunEffectPrefab: {fileID: 2672925459891620947, guid: 9673281826c36c94db1d5416195fc4c5, type: 3}
+  stunVfxOffset: {x: 0, y: 0, z: 0}
+  stunVfxScale: 0.5
   floatingDamageTextPrefab: {fileID: 6073548590437510050, guid: 8d0fe2c99d450df4f8d2989a1bb6a18f, type: 3}
   healthBarFill: {fileID: 1449960644631884161}
+  poisonVfxOffset: {x: 0, y: 2, z: 0}
+  poisonVfxScale: 0.9
+  fireVfxOffset: {x: 0, y: 0, z: 0}
+  fireVfxScale: 1
+  isFlying: 0
   canExplode: 1
   explosionRadius: 3
-  explosionDamage: 100
+  explosionDamage: 150
   explosionDamageType: 2
   explosionTrigger: explode
   explosionEffect: {fileID: 1644977290600873576, guid: 4f88a329c2ea46147ae0ae73cf63a4d6, type: 3}
+  senderClientId: 18446744073709551615
 --- !u!95 &4681379877548615823
 Animator:
   serializedVersion: 7
@@ -298,7 +310,7 @@ Canvas:
   m_UseReflectionProbes: 0
   m_AdditionalShaderChannelsFlag: 0
   m_UpdateRectTransformForStandalone: 0
-  m_SortingLayerID: 0
+  m_SortingLayerID: 222305419
   m_SortingOrder: 0
   m_TargetDisplay: 0
 --- !u!114 &4259756791014865861

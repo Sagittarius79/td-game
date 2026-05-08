@@ -38,18 +38,20 @@ public class PvPSendPanel : MonoBehaviour
              "Mindenki: az ellenfelnek ÉS saját magának is küldi (mindkét játékosnál megjelenik).")]
     public SendTarget sendTarget = SendTarget.OpponentOnly;
 
-    [Header("Auto bezárás")]
-    [Tooltip("Ennyi másodpercnyi érintés nélkül záródik be a panel")]
-    public float autoCloseDelay = 3f;
 
     [Header("Küldési zárolás")]
     [Tooltip("Ennyi másodperccel a hullám előtt már nem lehet küldeni")]
     public float sendLockBeforeWave = 4f;
     [Tooltip("Ez a hang szól, ha valaki a zárolás alatt próbál küldeni")]
     public AudioClip sendLockedSound;
+    [Tooltip("A SendPanel Image komponense – zároláskor színt vált")]
+    public Image sendPanelImage;
+    [Tooltip("Panel színe normál állapotban")]
+    public Color panelNormalColor = Color.white;
+    [Tooltip("Panel színe zároláskor (nem lehet küldeni)")]
+    public Color panelLockedColor = new Color(1f, 0.3f, 0.3f, 1f);
 
     public bool IsOpen { get; private set; } = false;
-    private float autoCloseTimer = 0f;
 
     void Awake()
     {
@@ -70,12 +72,13 @@ public class PvPSendPanel : MonoBehaviour
 
     void Update()
     {
-        if (!IsOpen) return;
+        UpdatePanelColor();
+    }
 
-        // Auto bezárás 5 mp inaktivitás után
-        autoCloseTimer -= Time.deltaTime;
-        if (autoCloseTimer <= 0f)
-            ClosePanel();
+    void UpdatePanelColor()
+    {
+        if (sendPanelImage == null) return;
+        sendPanelImage.color = IsSendLocked ? panelLockedColor : panelNormalColor;
     }
 
     // ── Gomb callback (Inspectorból kösd be) ────────────────────────
@@ -91,15 +94,8 @@ public class PvPSendPanel : MonoBehaviour
     public void OpenPanel()
     {
         IsOpen = true;
-        autoCloseTimer = autoCloseDelay;
         if (sendPanel      != null) sendPanel.SetActive(true);
         if (backdropButton != null) backdropButton.gameObject.SetActive(true);
-    }
-
-    /// <summary>Minden küldéskor visszaállítja a timert – így nyitva marad amíg nyomkodják.</summary>
-    public void ResetAutoCloseTimer()
-    {
-        autoCloseTimer = autoCloseDelay;
     }
 
     public void ClosePanel()
@@ -171,11 +167,7 @@ public class PvPSendPanel : MonoBehaviour
                 WavePreviewUI.Instance.AddPvPEnemyToPreview(def.icon, def.enemyName);
         }
 
-        // Rezgés visszajelzés
         VibrateShort();
-
-        // Panel nyitva marad – timer visszaállítása érintéskor
-        ResetAutoCloseTimer();
     }
 
     // ── Rezgés ──────────────────────────────────────────────────────

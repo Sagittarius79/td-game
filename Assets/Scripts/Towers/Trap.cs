@@ -74,16 +74,23 @@ public class Trap : MonoBehaviour
         {
             _animator.SetTrigger(biteTrigger);
 
-            // Várunk amíg az Animator feldolgozza a triggert
-            yield return null;
-            yield return null;
+            float elapsed = 0f;
+            bool biteStarted = false;
 
-            // Megvárjuk amíg a bite animáció végigfut (normalizedTime >= 1)
-            var info = _animator.GetCurrentAnimatorStateInfo(0);
-            while (info.normalizedTime < 1f)
+            while (elapsed < 5f)
             {
                 yield return null;
-                info = _animator.GetCurrentAnimatorStateInfo(0);
+                elapsed += Time.deltaTime;
+
+                var info = _animator.GetCurrentAnimatorStateInfo(0);
+
+                // Várjuk meg hogy a bite state elinduljon
+                if (!biteStarted && info.IsName(biteTrigger))
+                    biteStarted = true;
+
+                // Ha elindult és végigfutott → kilépünk
+                if (biteStarted && info.normalizedTime >= 1f)
+                    break;
             }
         }
 
