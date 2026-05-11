@@ -67,26 +67,32 @@
         document.querySelector("#unity-container").className = "unity-mobile";
         canvas.className = "unity-mobile";
       } else {
-        // Asztali böngésző: a canvas mindig befér a látható területbe.
-        // Footer (fullscreen gomb sor) magassága: 38px.
-        // Arány: 9:16 portrait referencia.
+        // Asztali böngésző: a canvas (+ footer) mindig belefér a látható területbe.
+        // Referencia arány: 9:16 portrait. Max render: 1080×2080 (540×1040 CSS).
         // A canvas attribútum (Unity belső felbontás) = CSS * 2.
         var footerH = 38;
         var availH  = window.innerHeight - footerH;
         var availW  = window.innerWidth;
         var cssW, cssH;
+
+        // 1. Illeszkedés az elérhető területhez
         if (availW / availH >= 9 / 16) {
-            // Szélesebb képernyő → magasság a szűkítő → ahhoz igazodik
             cssH = availH;
             cssW = Math.floor(cssH * 9 / 16);
         } else {
-            // Keskenyebb képernyő → szélesség a szűkítő → ahhoz igazodik
             cssW = availW;
             cssH = Math.floor(cssW * 16 / 9);
         }
-        // Felső korlát: 2× Unity render felbontás (1080×1920)
-        cssW = Math.min(cssW, 540);
-        cssH = Math.min(cssH, 1040);
+
+        // 2. Felső korlát – ha nagyobb lenne mint a max render felbontás,
+        //    mindkét dimenziót arányosan csökkentjük
+        if (cssW > 540) { cssW = 540; cssH = Math.floor(cssW * 16 / 9); }
+        if (cssH > 1040) { cssH = 1040; cssW = Math.floor(cssH * 9 / 16); }
+
+        // 3. Végső biztonsági ellenőrzés: canvas + footer tényleg befér-e?
+        if (cssH > availH) { cssH = availH; cssW = Math.floor(cssH * 9 / 16); }
+        if (cssW > availW) { cssW = availW; cssH = Math.floor(cssW * 16 / 9); }
+
         canvas.style.width  = cssW + "px";
         canvas.style.height = cssH + "px";
         canvas.width  = cssW * 2;   // Unity render szélesség
