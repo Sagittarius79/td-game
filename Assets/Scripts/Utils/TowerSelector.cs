@@ -17,12 +17,18 @@ public class TowerSelector : MonoBehaviour
 
         bool tapped = false;
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // WebGL-en a legacy Input API megbízhatóbb, mint a Mouse.current
+        if (Input.GetMouseButtonDown(0))
+            tapped = true;
+#else
         if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
             tapped = true;
 
         if (Touchscreen.current != null && Touchscreen.current.touches.Count > 0)
             if (Touchscreen.current.touches[0].phase.ReadValue() == UnityEngine.InputSystem.TouchPhase.Began)
                 tapped = true;
+#endif
 
         if (!tapped) return;
 
@@ -106,10 +112,14 @@ public class TowerSelector : MonoBehaviour
 
         Vector2 screenPos = Vector2.zero;
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+        screenPos = Input.mousePosition;
+#else
         if (Touchscreen.current != null && Touchscreen.current.touches.Count > 0)
             screenPos = Touchscreen.current.touches[0].position.ReadValue();
         else if (Mouse.current != null)
             screenPos = Mouse.current.position.ReadValue();
+#endif
 
         float camDist = Mathf.Abs(Camera.main.transform.position.z);
         Vector3 world = Camera.main.ScreenToWorldPoint(
