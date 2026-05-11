@@ -67,15 +67,30 @@
         document.querySelector("#unity-container").className = "unity-mobile";
         canvas.className = "unity-mobile";
       } else {
-        // Asztali böngésző: a canvas magassága az ablak magasságához igazodik
-        // (max. 9:19.5 arány = telefon-szerű), minimum 9:16.
+        // Asztali böngésző: a canvas mindig befér a látható területbe.
+        // Footer (fullscreen gomb sor) magassága: 38px.
+        // Arány: 9:16 portrait referencia.
         // A canvas attribútum (Unity belső felbontás) = CSS * 2.
-        var cssW = 540;
-        var cssH = Math.max(960, Math.min(Math.floor(window.innerHeight - 60), 1170));
+        var footerH = 38;
+        var availH  = window.innerHeight - footerH;
+        var availW  = window.innerWidth;
+        var cssW, cssH;
+        if (availW / availH >= 9 / 16) {
+            // Szélesebb képernyő → magasság a szűkítő → ahhoz igazodik
+            cssH = availH;
+            cssW = Math.floor(cssH * 9 / 16);
+        } else {
+            // Keskenyebb képernyő → szélesség a szűkítő → ahhoz igazodik
+            cssW = availW;
+            cssH = Math.floor(cssW * 16 / 9);
+        }
+        // Felső korlát: 2× Unity render felbontás (1080×1920)
+        cssW = Math.min(cssW, 540);
+        cssH = Math.min(cssH, 1040);
         canvas.style.width  = cssW + "px";
         canvas.style.height = cssH + "px";
-        canvas.width  = cssW * 2;   // 1080 – Unity render szélesség
-        canvas.height = cssH * 2;   // 1920–2340 – Unity render magasság
+        canvas.width  = cssW * 2;   // Unity render szélesség
+        canvas.height = cssH * 2;   // Unity render magasság
       }
 
       document.querySelector("#unity-loading-bar").style.display = "block";
