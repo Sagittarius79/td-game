@@ -70,24 +70,27 @@
         // Asztali böngésző: a canvas kitölti a teljes látható területet.
         // A footer absolute pozícióban lebeg a canvas jobb alsó sarkában,
         // ezért nem von le a magasságból semmit.
-        // Referencia arány: 9:16 portrait. Max render: 1080×2080 (540×1040 CSS).
+        // Referencia arány: 9:19.5 (modern telefon arány) – így a web
+        // pontosan ugyanannyit mutat mint a natív telefon app.
+        // Max render: 1080×2340 (540×1170 CSS) = tipikus Android felbontás.
         // A canvas attribútum (Unity belső felbontás) = CSS * 2.
+        var AW = 9, AH = 19.5; // telefon képarány
         var availH = window.innerHeight;
         var availW = window.innerWidth;
         var cssW, cssH;
 
-        // 1. Illeszkedés az elérhető területhez (9:16 arány megtartása)
-        if (availW / availH >= 9 / 16) {
+        // 1. Illeszkedés az elérhető területhez (9:19.5 arány megtartása)
+        if (availW / availH >= AW / AH) {
             cssH = availH;
-            cssW = Math.floor(cssH * 9 / 16);
+            cssW = Math.floor(cssH * AW / AH);
         } else {
             cssW = availW;
-            cssH = Math.floor(cssW * 16 / 9);
+            cssH = Math.floor(cssW * AH / AW);
         }
 
-        // 2. Felső korlát: max render felbontás (1080×2080), arány megtartva
-        if (cssW > 540) { cssW = 540; cssH = Math.floor(cssW * 16 / 9); }
-        if (cssH > 1040) { cssH = 1040; cssW = Math.floor(cssH * 9 / 16); }
+        // 2. Felső korlát: max render felbontás (1080×2340 → 540×1170 CSS)
+        if (cssW > 540) { cssW = 540; cssH = Math.floor(cssW * AH / AW); }
+        if (cssH > 1170) { cssH = 1170; cssW = Math.floor(cssH * AW / AH); }
 
         canvas.style.width  = cssW + "px";
         canvas.style.height = cssH + "px";
