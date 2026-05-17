@@ -85,7 +85,7 @@ public class GridManager : MonoBehaviour
     void ApplyRandomMap()
     {
         bool isPvP = NetworkGameManager.Instance != null
-                     && NetworkGameManager.Instance.SharedMapSeed != 0;
+                     && NetworkGameManager.Instance.IsPvPMode;
 
         MapDefinition[] pool = isPvP ? pvpMaps : ssfMaps;
 
