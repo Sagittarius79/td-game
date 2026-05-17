@@ -11,9 +11,11 @@ public class GridManager : MonoBehaviour
 {
     public static GridManager Instance { get; private set; }
 
-    [Header("Pályák – húzd be a MapDefinition asset-eket")]
-    [Tooltip("Ha legalább egy pálya be van húzva, induláskor random választ egyet.")]
-    public MapDefinition[] maps;
+    [Header("Pályák")]
+    [Tooltip("SSF (solo) módban ebből a listából választ random.")]
+    public MapDefinition[] ssfMaps;
+    [Tooltip("PvP módban ebből a listából választ (seed alapján szinkronizálva).")]
+    public MapDefinition[] pvpMaps;
 
     /// <summary>Az aktuálisan kiválasztott pálya (null, ha nincs maps beállítva).</summary>
     public MapDefinition SelectedMap { get; private set; }
@@ -82,19 +84,18 @@ public class GridManager : MonoBehaviour
     /// </summary>
     void ApplyRandomMap()
     {
-        if (maps == null || maps.Length == 0) return;
-
-        // PvP módban a host által küldött SharedMapSeed alapján választunk,
-        // így mindkét játékosnál ugyanaz a pálya töltődik be.
-        // Solo módban (NetworkGameManager nincs, vagy seed == 0) teljesen random.
         bool isPvP = NetworkGameManager.Instance != null
                      && NetworkGameManager.Instance.SharedMapSeed != 0;
 
-        SelectedMapIndex = isPvP
-            ? Mathf.Abs(NetworkGameManager.Instance.SharedMapSeed) % maps.Length
-            : Random.Range(0, maps.Length);
+        MapDefinition[] pool = isPvP ? pvpMaps : ssfMaps;
 
-        SelectedMap = maps[SelectedMapIndex];
+        if (pool == null || pool.Length == 0) return;
+
+        SelectedMapIndex = isPvP
+            ? Mathf.Abs(NetworkGameManager.Instance.SharedMapSeed) % pool.Length
+            : Random.Range(0, pool.Length);
+
+        SelectedMap = pool[SelectedMapIndex];
 
         if (SelectedMap == null)
         {
