@@ -31,4 +31,7 @@ public class MapDefinition : ScriptableObject
     [Header("Kamera")]
     [Tooltip("A kamera startpozíciója erre a pályára nézve")]
     public Vector3 cameraStartPosition = new Vector3(0f, 0f, -10f);
+
+    [Tooltip("Orthographic size induláskor (nagyobb = távolabb/kizoomolva). 0 = marad az Inspector értéke.")]
+    public float cameraOrthographicSize = 0f;
 }

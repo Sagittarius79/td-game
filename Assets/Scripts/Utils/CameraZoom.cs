@@ -82,6 +82,30 @@ public class CameraZoom : MonoBehaviour
 
     void Start()
     {
+        // Ha van kiválasztott pálya, a kamerát az ahhoz tartozó startpozícióra helyezzük.
+        // Start() az összes Awake() után fut, tehát GridManager.SelectedMap már be van állítva.
+        if (GridManager.Instance != null && GridManager.Instance.SelectedMap != null)
+        {
+            var map = GridManager.Instance.SelectedMap;
+
+            // Pozíció
+            Vector3 mapCamPos = map.cameraStartPosition;
+            mapCamPos.z = transform.position.z;
+            transform.position = mapCamPos;
+            initialPosition    = mapCamPos;
+            targetPosition     = mapCamPos;
+
+            // Orthographic size (zoom szint) – csak ha be van állítva
+            if (map.cameraOrthographicSize > 0f)
+            {
+                cam.orthographicSize = map.cameraOrthographicSize;
+                maxZoom              = map.cameraOrthographicSize;
+                targetZoom           = map.cameraOrthographicSize;
+            }
+
+            Debug.Log($"CameraZoom: '{map.name}' → pos:{mapCamPos}, orthoSize:{cam.orthographicSize}");
+        }
+
         initialized = true;
     }
 

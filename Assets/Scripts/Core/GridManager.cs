@@ -3,14 +3,25 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Négyzetes felülnézetes rács kezelő.
-/// A GridOrigin értékét az Inspectorban kell beállítani,
-/// hogy egyezzen a Tilemap bal felső sarkával.
+/// Ha a maps tömb ki van töltve, induláskor random választ egyet,
+/// és a MapDefinition adatait alkalmazza (gridOrigin, pathWaypoints stb.).
+/// Ha a maps üres, a hardcode-olt értékek maradnak érvényben.
 /// </summary>
 public class GridManager : MonoBehaviour
 {
     public static GridManager Instance { get; private set; }
 
-    [Header("Rács mérete")]
+    [Header("Pályák – húzd be a MapDefinition asset-eket")]
+    [Tooltip("Ha legalább egy pálya be van húzva, induláskor random választ egyet.")]
+    public MapDefinition[] maps;
+
+    /// <summary>Az aktuálisan kiválasztott pálya (null, ha nincs maps beállítva).</summary>
+    public MapDefinition SelectedMap { get; private set; }
+
+    /// <summary>A kiválasztott pálya indexe a maps tömbben (-1, ha nincs).</summary>
+    public int SelectedMapIndex { get; private set; } = -1;
+
+    [Header("Rács mérete (felülírja a MapDefinition, ha van)")]
     public int gridWidth  = 15;
     public int gridHeight = 20;
 
@@ -18,7 +29,7 @@ public class GridManager : MonoBehaviour
     public float tileWidth  = 1.28f;
     public float tileHeight = 1.28f;
 
-    [Header("Rács origó – állítsd a Tilemap bal felső sarkára!")]
+    [Header("Rács origó – felülírja a MapDefinition, ha van")]
     public Vector2 gridOrigin = new Vector2(-9.6f, 12.8f);
 
     public enum CellType { Empty, Road, Occupied, Castle, Rubble }
@@ -60,8 +71,43 @@ public class GridManager : MonoBehaviour
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
+        ApplyRandomMap();
         InitGrid();
         BuildFullPath();
+    }
+
+    /// <summary>
+    /// Ha van legalább egy MapDefinition a maps tömbben, random választ egyet
+    /// és alkalmazza az adatait. Különben maradnak a hardcode-olt értékek.
+    /// </summary>
+    void ApplyRandomMap()
+    {
+        if (maps == null || maps.Length == 0) return;
+
+        // PvP módban a host által küldött SharedMapSeed alapján választunk,
+        // így mindkét játékosnál ugyanaz a pálya töltődik be.
+        // Solo módban (NetworkGameManager nincs, vagy seed == 0) teljesen random.
+        bool isPvP = NetworkGameManager.Instance != null
+                     && NetworkGameManager.Instance.SharedMapSeed != 0;
+
+        SelectedMapIndex = isPvP
+            ? Mathf.Abs(NetworkGameManager.Instance.SharedMapSeed) % maps.Length
+            : Random.Range(0, maps.Length);
+
+        SelectedMap = maps[SelectedMapIndex];
+
+        if (SelectedMap == null)
+        {
+            Debug.LogWarning("GridManager: a kiválasztott MapDefinition null, maradnak az alapértelmezett értékek.");
+            return;
+        }
+
+        gridOrigin    = SelectedMap.gridOrigin;
+        gridWidth     = SelectedMap.gridWidth;
+        gridHeight    = SelectedMap.gridHeight;
+        pathWaypoints = SelectedMap.pathWaypoints;
+
+        Debug.Log($"GridManager: '{SelectedMap.name}' pálya kiválasztva (index: {SelectedMapIndex})");
     }
 
     void InitGrid()
