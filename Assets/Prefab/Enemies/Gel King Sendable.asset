@@ -1,0 +1,22 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ace3781b69967f0498e6f5c57564ce89, type: 3}
+  m_Name: Gel King Sendable
+  m_EditorClassIdentifier: Assembly-CSharp::SendableEnemyDefinition
+  enemyName: Gel King
+  icon: {fileID: -5229933413751395765, guid: 2a476c384269d49459c401181ed4e302, type: 3}
+  goldCost: 600
+  prefab: {fileID: 6345430543806320468, guid: 0ce66a751dd6df344a3478b21fc770f3, type: 3}
+  sendCount: 1
+  minSpawnDelay: 0.2
+  maxSpawnDelay: 0.5
+  description: Immun to magic

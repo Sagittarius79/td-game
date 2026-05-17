@@ -94,7 +94,21 @@ public class NetworkGameManager : MonoBehaviour
     /// <summary>Hány másodpercig várunk a sikeres TCP/WS kapcsolatra StartClient után.</summary>
     public float connectionTimeoutSeconds = 10f;
 
+    /// <summary>
+    /// Hány próbálkozással csatlakozzon a kliens, mielőtt feladja és OnConnectionFailed-et tüzel.
+    /// Indok: a dedikált Unity szerver időnként scene load közben rövid időre nem fogad
+    /// új kapcsolatot (SceneManager.LoadScene sync módban). Ilyenkor egy 2s-os retry
+    /// nagy eséllyel sikerül.
+    /// </summary>
+    public int maxConnectionAttempts = 3;
+
+    /// <summary>Két próbálkozás között eltelt idő (s).</summary>
+    public float connectionRetryDelaySeconds = 2f;
+
     private Coroutine _connectionWatchdog;
+    private int _connectionAttempts = 0;
+    private string _lastConnectHost;
+    private ushort _lastConnectPort;
 
     // ── Room owner (dedikált szerveres mód) ─────────────────────────
 
@@ -118,9 +132,10 @@ public class NetworkGameManager : MonoBehaviour
 
     // ── Játék állapot ────────────────────────────────────────────────
 
-    private bool _castleFallen = false;
-    private bool _resultShown  = false;
-    private bool _gameEnded    = false;
+    private bool _castleFallen    = false;
+    private bool _resultShown     = false;
+    private bool _gameEnded       = false;
+    private bool _matchHasStarted = false;  // TriggerGameStart után true; késői csatlakozónak MSG_START_GAME kell
 
     /// <summary>Jelenleg élő (kastélyukat el nem veszítő) játékosok – csak a szerveren releváns.</summary>
     private HashSet<ulong> _alivePlayers = new HashSet<ulong>();
@@ -252,9 +267,26 @@ public class NetworkGameManager : MonoBehaviour
     /// Kliens csatlakozás a szerverhez.
     /// hostIP: szerver publikus domain/IP (pl. "kakaoo123.asuscomm.com")
     /// serverPort: matchmaking API által visszaadott port (0 = Inspector-ban beállított port)
+    ///
+    /// Hibakezelés: ha a kapcsolat nem épül ki connectionTimeoutSeconds alatt,
+    /// még maxConnectionAttempts-szer újraépítjük (connectionRetryDelaySeconds szünettel),
+    /// mielőtt OnConnectionFailed-et tüzelünk. Ez kezeli azt az esetet, amikor a Unity
+    /// szerver épp scene load közben van és pár másodpercig nem fogad új kapcsolatot.
     /// </summary>
     public void StartClient(string hostIP, ushort serverPort = 0)
     {
+        _connectionAttempts = 0;
+        _lastConnectHost    = hostIP;
+        _lastConnectPort    = serverPort;
+        AttemptStartClient();
+    }
+
+    void AttemptStartClient()
+    {
+        _connectionAttempts++;
+        string hostIP     = _lastConnectHost;
+        ushort serverPort = _lastConnectPort;
+
         ResetRoundState();
         _playerNames.Clear();
         _googlePlayerIds.Clear();
@@ -271,27 +303,84 @@ public class NetworkGameManager : MonoBehaviour
         bool useTls = connectPort == 443;
         transport.UseEncryption = useTls;
 
-        // Unity Transport NetworkEndpoint csak IP-t fogad el, hostnevet nem.
-        // TLS-nél manuálisan feloldjuk DNS-en, és a hostnevet külön elküldjük SNI-ként
-        // a SetClientSecrets()-szel – ez adja meg a tanúsítvány CN-jének elvárt értékét.
+        // TLS (port 443, Caddy WSS proxy):
+        //   - Android/native: kézzel feloldjuk DNS-en (Dns.GetHostAddresses), IP-t adunk át.
+        //   - WebGL: System.Net.Dns nem elérhető böngésző sandboxban → a hostnevet közvetlenül
+        //     adjuk át, a böngésző JS WebSocket API kezeli a DNS feloldást saját maga.
+        // LAN kliensnek a matchmaking szerver külön TCP connect IP-t küld (server_connect_ip)
+        // a Caddy LAN IP-jére, hogy NAT loopback nélkül elérje a Caddy 443-as portját –
+        // a TLS SNI viszont továbbra is a pNNNN.kakaoo123.duckdns.org hosztnév, így a
+        // SNI-route megtalálja a meccs Unity portját. Mindkét esetben SetClientSecrets(hostname)
+        // adja meg a TLS SNI-t és cert CN-elvárást.
         string connectionAddress = hostIP;
         if (useTls)
         {
-            string resolvedIp = ResolveHostToIPv4(hostIP);
-            if (resolvedIp == null)
-            {
-                Debug.LogError($"[NGM] DNS feloldási hiba: {hostIP} – nem található IPv4 cím.");
-                OnConnectionFailed?.Invoke($"Nem sikerült feloldani a szerver címét: {hostIP}");
-                return;
-            }
-            connectionAddress = resolvedIp;
-            Debug.Log($"[NGM] DNS: {hostIP} → {resolvedIp} (SNI={hostIP})");
-
-            // SNI / cert-CN ellenőrzéshez a hostnevet adjuk meg, CA-nak null = rendszer trust store
             transport.SetClientSecrets(hostIP, null);
+
+            string overrideIp = MatchmakingClient.Instance != null
+                ? MatchmakingClient.Instance.LastConnectOverrideIp
+                : null;
+
+            if (!string.IsNullOrEmpty(overrideIp))
+            {
+                // LAN út: a matchmaking szerver az általunk elérhető Caddy LAN IP-t küldte.
+                connectionAddress = overrideIp;
+                Debug.Log($"[NGM] LAN TLS: connect={overrideIp}:{connectPort} (SNI={hostIP})");
+            }
+            else
+            {
+#if UNITY_WEBGL && !UNITY_EDITOR
+                // WebGL: System.Net.Dns.GetHostAddresses() nem elérhető – hostname direkt átadása.
+                // A böngésző WebSocket implementációja elvégzi a DNS feloldást.
+                connectionAddress = hostIP;
+                Debug.Log($"[NGM] WebGL TLS: hostname direkt átadva: {hostIP}:{connectPort}");
+#else
+                // Android / Desktop publikus út: kézi DNS feloldás, IP átadása Unity Transportnak.
+                string resolvedIp = ResolveHostToIPv4(hostIP);
+                if (resolvedIp == null)
+                {
+                    Debug.LogError($"[NGM] DNS feloldási hiba: {hostIP} – nem található IPv4 cím.");
+                    OnConnectionFailed?.Invoke($"Nem sikerült feloldani a szerver címét: {hostIP}");
+                    return;
+                }
+                connectionAddress = resolvedIp;
+                Debug.Log($"[NGM] DNS: {hostIP} → {resolvedIp} (SNI={hostIP})");
+#endif
+            }
         }
 
+#if UNITY_WEBGL && !UNITY_EDITOR
+        // WebGL-en a UnityTransport.ClientBindAndConnect csak IPv4/IPv6-ot fogad
+        // el (NetworkEndpoint.TryParse-on átment) – hosztnévre "Invalid network
+        // endpoint" hibával bukik, ami után a Netcode állapotgép sérül és wasm
+        // memory access OOB crash jön a következő frame-en.
+        //
+        // Workaround: a WebGLHostnameTransport (custom UnityTransport subclass)
+        // a Connect()-et override-olja, és reflectionnel a privát m_Driver-en
+        // hívja meg a hosztnév-támogató NetworkDriver.Connect(FixedString512Bytes, ushort)
+        // overloadot. A validációt átejtjük egy dummy "127.0.0.1" IP-vel a
+        // ConnectionData.Address mezőben – ami csak addig kell, amíg a Family
+        // check átmegy; a tényleges WebSocket URL-t a hosztnévből építi a
+        // baselib NetworkInterface.
+        if (transport is WebGLHostnameTransport)
+        {
+            WebGLHostnameTransport.PendingHostname = connectionAddress;
+            WebGLHostnameTransport.PendingPort     = connectPort;
+            transport.SetConnectionData("127.0.0.1", connectPort);
+            Debug.Log($"[NGM] WebGL custom transport: hosztnév={connectionAddress}, port={connectPort}");
+        }
+        else
+        {
+            Debug.LogError(
+                "[NGM] WebGL build, de a NetworkManager Transport komponense nem " +
+                "WebGLHostnameTransport! A stock UnityTransport hosztnevet nem fogad. " +
+                "Cseréld le a NetworkManager Inspectorban a Transport komponenst " +
+                "WebGLHostnameTransport-ra (Assets/Scripts/Network/WebGLHostnameTransport.cs).");
+            transport.SetConnectionData(connectionAddress, connectPort);   // így biztos hibázni fog, de lássuk
+        }
+#else
         transport.SetConnectionData(connectionAddress, connectPort);
+#endif
 
         NetworkManager.Singleton.OnClientDisconnectCallback += OnServerDisconnected_ClientOnly;
         NetworkManager.Singleton.StartClient();
@@ -317,7 +406,7 @@ public class NetworkGameManager : MonoBehaviour
             }
             if (NetworkManager.Singleton.IsConnectedClient)
             {
-                Debug.Log($"[NGM] Kapcsolat kiépült: {host}:{port}");
+                Debug.Log($"[NGM] Kapcsolat kiépült: {host}:{port} (próba {_connectionAttempts}/{maxConnectionAttempts})");
                 _connectionWatchdog = null;
                 yield break;
             }
@@ -325,8 +414,23 @@ public class NetworkGameManager : MonoBehaviour
             waited += 0.5f;
         }
 
+        // Időtúllépés. Ha még van retry, indítsuk újra a csatlakozást.
+        if (_connectionAttempts < maxConnectionAttempts)
+        {
+            Debug.LogWarning(
+                $"[NGM] Kapcsolat időtúllépés ({connectionTimeoutSeconds}s, próba " +
+                $"{_connectionAttempts}/{maxConnectionAttempts}) – {connectionRetryDelaySeconds}s múlva újra: {host}:{port}"
+            );
+            try { NetworkManager.Singleton?.Shutdown(); } catch { }
+            _connectionWatchdog = null;
+            yield return new WaitForSeconds(connectionRetryDelaySeconds);
+            AttemptStartClient();
+            yield break;
+        }
+
+        // Minden próbálkozás kimerült → végleges hiba
         Debug.LogError(
-            $"[NGM] Kapcsolat sikertelen {connectionTimeoutSeconds}s alatt: {host}:{port}. " +
+            $"[NGM] Kapcsolat sikertelen {maxConnectionAttempts} próbálkozás után: {host}:{port}. " +
             "Tipp: ellenőrizd hogy a 9000–9029 TCP portok forwardolva vannak-e a routeren."
         );
         OnConnectionFailed?.Invoke(
@@ -412,6 +516,7 @@ public class NetworkGameManager : MonoBehaviour
         {
             _playerNames.Clear();
             _googlePlayerIds.Clear();
+            _matchHasStarted = false;
             Debug.Log("[NGM] Új lobby-session – playerNames/googlePlayerIds törölve");
         }
 
@@ -445,6 +550,18 @@ public class NetworkGameManager : MonoBehaviour
         {
             // Már van room owner – az új kliensnek is elküldjük
             SendRoomOwnerTo(clientId);
+        }
+
+        // Késői csatlakozás (pl. lassú WebGL): a játék már elindult, de ez a kliens lemaradt
+        // a MSG_START_GAME-ről → most pótoljuk.
+        if (_matchHasStarted && !_gameEnded && clientId != NetworkManager.Singleton.LocalClientId)
+        {
+            _alivePlayers.Add(clientId);
+            using var startWriter = new FastBufferWriter(4, Allocator.Temp);
+            startWriter.WriteValueSafe(SharedMapSeed);
+            NetworkManager.Singleton.CustomMessagingManager
+                .SendNamedMessage(MSG_START_GAME, clientId, startWriter);
+            Debug.Log($"[NGM] Késői csatlakozás – MSG_START_GAME újraküldve: clientId={clientId}, seed={SharedMapSeed}");
         }
     }
 
@@ -521,7 +638,7 @@ public class NetworkGameManager : MonoBehaviour
     void BroadcastPlayerCount(int count)
     {
         var nm = NetworkManager.Singleton;
-        if (nm == null || !nm.IsServer) return;
+        if (nm == null || !nm.IsServer || nm.CustomMessagingManager == null) return;
         using var writer = new FastBufferWriter(4, Allocator.Temp);
         writer.WriteValueSafe(count);
         nm.CustomMessagingManager.SendNamedMessageToAll(MSG_PLAYER_COUNT, writer);
@@ -635,6 +752,7 @@ public class NetworkGameManager : MonoBehaviour
     {
         if (!NetworkManager.Singleton.IsHost) return;
 
+        _matchHasStarted = true;
         _alivePlayers.Clear();
         _eliminationOrder.Clear();
         _sentEnemyCounts.Clear();
@@ -732,7 +850,16 @@ public class NetworkGameManager : MonoBehaviour
 
         // Értesítjük a maradék klienseket, hogy távolítsák el a kiesett játékost a trackerből
         if (wasAlive)
-            BroadcastPlayerEliminated(loserId);
+        {
+            int alivePlayers = _alivePlayers.Count;
+            BroadcastPlayerEliminated(loserId, alivePlayers);
+            // Host saját UI-ján is megjelenítjük, ugyanazokkal a feltételekkel mint a klienseken
+            if (alivePlayers > 1)
+            {
+                string loserName = GetPlayerName(loserId);
+                UIManager.Instance?.ShowEliminationNotice(loserName);
+            }
+        }
 
         // Biztonsági szinkronizálás: ha bármilyen okból az _alivePlayers olyan
         // ID-kat tartalmaz, akik már nincsenek a ConnectedClients-ben (pl. egy
@@ -1434,12 +1561,15 @@ public class NetworkGameManager : MonoBehaviour
 
     // ── Játékos kiesés broadcast ─────────────────────────────────────
 
-    void BroadcastPlayerEliminated(ulong eliminatedId)
+    void BroadcastPlayerEliminated(ulong eliminatedId, int alivePlayers)
     {
         if (!NetworkManager.Singleton.IsHost) return;
 
-        using var writer = new FastBufferWriter(8, Allocator.Temp);
+        string eliminatedName = GetPlayerName(eliminatedId);
+        using var writer = new FastBufferWriter(256, Allocator.Temp);
         writer.WriteValueSafe(eliminatedId);
+        writer.WriteValueSafe(eliminatedName);
+        writer.WriteValueSafe(alivePlayers);
 
         foreach (var clientId in NetworkManager.Singleton.ConnectedClientsIds)
         {
@@ -1452,8 +1582,14 @@ public class NetworkGameManager : MonoBehaviour
     void HandlePlayerEliminated(FastBufferReader reader)
     {
         reader.ReadValueSafe(out ulong eliminatedId);
+        reader.ReadValueSafe(out string eliminatedName);
+        reader.ReadValueSafe(out int alivePlayers);
         OpponentDataTracker.Instance?.RemovePlayer(eliminatedId);
-        Debug.Log($"[SpyTower] Játékos kiesett, eltávolítva a trackerből: {eliminatedId}");
+
+        // Ne mutassuk ha: a saját magunk esett ki, vagy már csak 1 maradt (győztes kap saját hangot)
+        bool isSelf = NetworkManager.Singleton?.LocalClientId == eliminatedId;
+        if (!isSelf && alivePlayers > 1)
+            UIManager.Instance?.ShowEliminationNotice(eliminatedName);
     }
 
     // ── Spy Tower: torony lerakás + kastély HP szinkronizálás ────────

@@ -85,6 +85,22 @@ public class XPManager : MonoBehaviour
         Debug.Log($"XPManager: +{xp} XP (szörny HP) → összesen {_pendingXP} XP ebben a meccsben");
     }
 
+    /// <summary>
+    /// SSF Gold Pool ellenség megölésért jár XP.
+    /// Csak SSF módban aktív – a normál wave-szörnyek ölése NEM ad XP-t.
+    /// WaveManager.OnEnemyDied hívja, ha a szörny SSF_SENDER_ID-val volt megjelölve.
+    /// </summary>
+    public void AddSSFGoldPoolXP(float enemyMaxHP)
+    {
+        bool isSsf = UserProgressManager.Instance != null
+                     && UserProgressManager.Instance.HasCharacter
+                     && UserProgressManager.Instance.Data.IsSSF;
+        if (!isSsf) return;
+
+        long xp = Mathf.CeilToInt(enemyMaxHP);
+        _pendingXP += xp;
+    }
+
     // ── Kiesési kontextus ─────────────────────────────────────────────
 
     /// <summary>
@@ -129,7 +145,10 @@ public class XPManager : MonoBehaviour
         // 10-es szint felett 0 XP, 10-es szint alatt clamp annyira, hogy
         // épp elérje a 10-es szintet, ne lépje túl.
         bool soloCapped = false;
-        if (!isPvP && awarded > 0 && UserProgressManager.Instance != null)
+        bool isSsfChar = UserProgressManager.Instance != null
+                         && UserProgressManager.Instance.HasCharacter
+                         && UserProgressManager.Instance.Data.IsSSF;
+        if (!isPvP && !isSsfChar && awarded > 0 && UserProgressManager.Instance != null)
         {
             int currentLevel = UserProgressManager.Instance.Level;
             if (currentLevel >= SOLO_XP_LEVEL_CAP)
@@ -159,6 +178,8 @@ public class XPManager : MonoBehaviour
 
             if (won) UserProgressManager.Instance.RecordWin();
             else     UserProgressManager.Instance.RecordLoss();
+
+            ServerSyncManager.GetOrCreate().TriggerSync();
         }
 
         // Utolsó meccs statisztikák mentése (game over képernyőhöz)

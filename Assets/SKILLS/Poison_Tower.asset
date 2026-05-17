@@ -25,8 +25,8 @@ MonoBehaviour:
     column: 1
     prerequisites: []
     effectType: 0
-    effectValuePerLevel: 0.04
-    fixedCostPerLevel: 3
+    effectValuePerLevel: 0
+    fixedCostPerLevel: 1
     minCharacterLevel: 10
   - id: Poison_Tower_DMG
     displayName: Poison Tower DMG

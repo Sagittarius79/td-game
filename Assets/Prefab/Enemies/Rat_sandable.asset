@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SendableEnemyDefinition
   enemyName: Rat
   icon: {fileID: -707924003286663084, guid: 3f77c0dc87f93a744892e9b097aeefb6, type: 3}
-  goldCost: 26
+  goldCost: 32
   prefab: {fileID: 6345430543806320468, guid: 26c81149d8e1efa49b0d9d9159d77c1a, type: 3}
   sendCount: 10
   minSpawnDelay: 0.01

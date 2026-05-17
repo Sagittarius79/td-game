@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 4841857872693809171}
   - component: {fileID: 9122058297513460746}
   - component: {fileID: 1562206411540991898}
+  - component: {fileID: 1136684721792148055}
   m_Layer: 0
   m_Name: TeleportHitEffect
   m_TagString: Untagged
@@ -128,3 +129,82 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
+--- !u!114 &1136684721792148055
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5681393260040678234}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1f1da56c90455274698cd9bd6d1dfc39, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Projectile
+  projectileTag: 
+  pierceCount: 0
+  javelinCanCrit: 0
+  javelinCritDamagePercent: 200
+  prismaDmgBonus: 0
+  prismaRangeBonus: 0
+  prismaElementChanger: 0
+  prismaElementBaseInterval: 10
+  prismaElementDamagePercent: 50
+  prismaBounce: 0
+  prismaMaxBounces: 1
+  prismaBounceBaseChance: 0
+  prismaBounceChancePerArmor: 10
+  prismaBounceMaxChance: 80
+  prismaElementActive: 0
+  prismaBounceSkillBonus: 0
+  prismaBounceRange: 0
+  prismaBouncesLeft: 0
+  canHitFlying: 0
+  moveSpeed: 8
+  maxLifetime: 5
+  impactEffect: {fileID: 0}
+  impactOffset: {x: 0, y: 0, z: 0}
+  teleportOnHit: 0
+  pullOnHit: 0
+  pullRadius: 2
+  pullForce: 3
+  pullDuration: 0.4
+  applyPoison: 0
+  poisonDamagePerSecond: 1
+  poisonDuration: 5
+  maxPoisonStacks: 3
+  poisonVfxPrefab: {fileID: 0}
+  applyBurning: 0
+  burnDamagePerSecond: 5
+  burnDuration: 5
+  burnIsAOE: 0
+  burnAOERadius: 1.5
+  burnVfxPrefab: {fileID: 0}
+  canPlaceTrap: 0
+  trapPrefab: {fileID: 0}
+  trapDamage: 0
+  stoneDmgBonus: 0
+  stoneAOEBonus: 0
+  canCrit: 1
+  critDamagePercent: 200
+  canDestroyArmor: 1
+  canMultiShot: 1
+  multiShotCount: 3
+  archerRangeBonus: 1
+  canStun: 1
+  stunDuration: 1.5
+  stoneCanCrit: 0
+  stoneFocusBonus: 0
+  stoneMagicAOEDmgBonus: 0
+  stoneChargeDmgBonus: 0
+  damage: 0
+  aoeDamage: 0
+  magicDamage: 0
+  isAreaDamage: 0
+  areaRadius: 0
+  damageType: 0
+  critChance: 0
+  armorPierce: 0
+  stunChance: 0
+  trapChance: 0
+  javelinActiveCritChance: 0

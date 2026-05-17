@@ -622,7 +622,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &384066166
 RectTransform:
   m_ObjectHideFlags: 0
@@ -1762,8 +1762,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: New Text
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
-  m_sharedMaterial: {fileID: 2180264, guid: 8f586378b4e144a9851e7b34d9b748ee, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: e561fde8bc2a44f45bbc7a96d1733014, type: 2}
+  m_sharedMaterial: {fileID: -5766780139878212772, guid: e561fde8bc2a44f45bbc7a96d1733014, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1787,12 +1787,12 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 30
+  m_fontSize: 25
   m_fontSizeBase: 36
   m_fontWeight: 400
   m_enableAutoSizing: 1
   m_fontSizeMin: 18
-  m_fontSizeMax: 30
+  m_fontSizeMax: 25
   m_fontStyle: 0
   m_HorizontalAlignment: 2
   m_VerticalAlignment: 256
@@ -1924,6 +1924,7 @@ GameObject:
   - component: {fileID: 887839228}
   - component: {fileID: 887839227}
   - component: {fileID: 887839226}
+  - component: {fileID: 887839231}
   m_Layer: 5
   m_Name: Canvas
   m_TagString: Untagged
@@ -1955,7 +1956,7 @@ MonoBehaviour:
   waitStatusText: {fileID: 802140067}
   waitLeaveButton: {fileID: 1358499362}
   pvpStartSound: {fileID: 8300000, guid: 24e051d712586124c943a78c9d9076b3, type: 3}
-  autoLobbyWaitSeconds: 10
+  autoLobbyWaitSeconds: 60
   pollIntervalSeconds: 2
 --- !u!114 &887839227
 MonoBehaviour:
@@ -2045,6 +2046,18 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
+--- !u!114 &887839231
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 887839225}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e0c42f265ee7d8a45816ef65da3d0155, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CanvasScalerFit
 --- !u!1 &948839849
 GameObject:
   m_ObjectHideFlags: 0
@@ -4174,11 +4187,11 @@ GameObject:
   m_Component:
   - component: {fileID: 1879994020}
   - component: {fileID: 1879994019}
-  - component: {fileID: 1879994018}
   - component: {fileID: 1879994017}
   - component: {fileID: 1879994021}
   - component: {fileID: 1879994022}
   - component: {fileID: 1879994023}
+  - component: {fileID: 1879994024}
   m_Layer: 0
   m_Name: NetworkManager
   m_TagString: Untagged
@@ -4202,35 +4215,8 @@ MonoBehaviour:
   mainMenuSceneName: MainMenu
   port: 7777
   connectionTimeoutSeconds: 10
---- !u!114 &1879994018
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1879994016}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6960e84d07fb87f47956e7a81d71c4e6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Unity.Netcode.Runtime::Unity.Netcode.Transports.UTP.UnityTransport
-  m_ProtocolType: 0
-  m_UseWebSockets: 0
-  m_UseEncryption: 0
-  m_MaxPacketQueueSize: 128
-  m_MaxPayloadSize: 6144
-  m_HeartbeatTimeoutMS: 500
-  m_ConnectTimeoutMS: 1000
-  m_MaxConnectAttempts: 60
-  m_DisconnectTimeoutMS: 30000
-  ConnectionData:
-    Address: 127.0.0.1
-    Port: 7777
-    ServerListenAddress: 127.0.0.1
-  DebugSimulator:
-    PacketDelayMS: 0
-    PacketJitterMS: 0
-    PacketDropRate: 0
+  maxConnectionAttempts: 3
+  connectionRetryDelaySeconds: 2
 --- !u!114 &1879994019
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4246,7 +4232,7 @@ MonoBehaviour:
   NetworkManagerExpanded: 0
   NetworkConfig:
     ProtocolVersion: 0
-    NetworkTransport: {fileID: 1879994018}
+    NetworkTransport: {fileID: 1879994024}
     PlayerPrefab: {fileID: 0}
     Prefabs:
       NetworkPrefabsLists:
@@ -4326,6 +4312,35 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c87da59cc26050a419c05965c466e3f9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::ServerSyncManager
+--- !u!114 &1879994024
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1879994016}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ec99cd24311f1d4ca35e23a19f36dc1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::WebGLHostnameTransport
+  m_ProtocolType: 0
+  m_UseWebSockets: 0
+  m_UseEncryption: 0
+  m_MaxPacketQueueSize: 128
+  m_MaxPayloadSize: 6144
+  m_HeartbeatTimeoutMS: 500
+  m_ConnectTimeoutMS: 1000
+  m_MaxConnectAttempts: 60
+  m_DisconnectTimeoutMS: 30000
+  ConnectionData:
+    Address: 127.0.0.1
+    Port: 7777
+    ServerListenAddress: 127.0.0.1
+  DebugSimulator:
+    PacketDelayMS: 0
+    PacketJitterMS: 0
+    PacketDropRate: 0
 --- !u!1 &1906951367
 GameObject:
   m_ObjectHideFlags: 0
@@ -4609,7 +4624,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2081261539
 RectTransform:
   m_ObjectHideFlags: 0

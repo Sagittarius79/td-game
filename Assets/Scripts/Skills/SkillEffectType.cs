@@ -92,4 +92,14 @@ public enum SkillEffectType
     OrkDenBoost,            // Ork Den által termelt bónusz gold növelése killenkénti szintenként
     [UnityEngine.InspectorName("Building HP Over Regen (x/lvl)")]
     BuildingHPOverRegen,    // Ha a kastély teli van, 10 másodpercenként ennyivel nő a max HP
+
+    // ── Turul ────────────────────────────────────────────────────
+    [UnityEngine.InspectorName("Turul DMG Boost (x/lvl)")]
+    TurulDmgBoost,          // Repeat Damage Increment növelése szintenként
+    [UnityEngine.InspectorName("Turul Repeat Out Range (x/lvl)")]
+    TurulRepeatOutRange,    // Range-en kívüli ismételt támadások száma szintenként
+    [UnityEngine.InspectorName("Turul Count (x/lvl)")]
+    TurulCount,             // Egyszerre aktív lövedékek maximuma szintenként
+    [UnityEngine.InspectorName("Turul Repeat Speed (x/lvl)")]
+    TurulRepeatSpeed,       // repeatArcWidth csökkentése szintenként → kisebb ív, gyorsabb újratámadás
 }

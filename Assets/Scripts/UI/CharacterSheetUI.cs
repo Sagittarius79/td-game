@@ -63,7 +63,16 @@ public class CharacterSheetUI : MonoBehaviour
     public void Hide()
     {
         if (sheetPanel != null) sheetPanel.SetActive(false);
-        FindObjectOfType<MainMenuUI>()?.SetCharacterCardVisible(true);
+
+        if (TutorialCardsUI.Instance != null)
+        {
+            TutorialCardsUI.Instance.Show(() =>
+                FindObjectOfType<MainMenuUI>()?.SetCharacterCardVisible(true));
+        }
+        else
+        {
+            FindObjectOfType<MainMenuUI>()?.SetCharacterCardVisible(true);
+        }
     }
 
     // ── Adatok frissítése ─────────────────────────────────────────────

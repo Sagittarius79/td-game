@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 6856189689463457879}
   - component: {fileID: 5037146554763941779}
   - component: {fileID: 7611510997919072639}
+  - component: {fileID: -1631296197972824633}
   m_Layer: 0
   m_Name: Stone
   m_TagString: Untagged
@@ -105,6 +106,23 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Projectile
   projectileTag: Stone
+  pierceCount: 0
+  javelinCanCrit: 0
+  javelinCritDamagePercent: 200
+  prismaDmgBonus: 0
+  prismaRangeBonus: 0
+  prismaElementChanger: 0
+  prismaElementBaseInterval: 10
+  prismaElementDamagePercent: 50
+  prismaBounce: 0
+  prismaMaxBounces: 1
+  prismaBounceBaseChance: 0
+  prismaBounceChancePerArmor: 10
+  prismaBounceMaxChance: 80
+  prismaElementActive: 0
+  prismaBounceSkillBonus: 0
+  prismaBounceRange: 0
+  prismaBouncesLeft: 0
   canHitFlying: 0
   moveSpeed: 8
   maxLifetime: 5
@@ -143,4 +161,50 @@ MonoBehaviour:
   stoneFocusBonus: 0
   stoneMagicAOEDmgBonus: 0
   stoneChargeDmgBonus: 0
+  damage: 0
+  aoeDamage: 0
+  magicDamage: 0
+  isAreaDamage: 0
+  areaRadius: 0
   damageType: 0
+  critChance: 0
+  armorPierce: 0
+  stunChance: 0
+  trapChance: 0
+  javelinActiveCritChance: 0
+--- !u!114 &-1631296197972824633
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1195598799799255261}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4a0ad181724bdc944bbbc59832b38b31, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::altalanos_fejlesztesek
+  gyujtas: 0
+  gyutasTalalatSebzes: 0
+  gyutasDoTSebzesMpenkent: 5
+  gyutasIdotartam: 3
+  gyutasVfxPrefab: {fileID: 0}
+  stun: 0
+  stunEsely: 0.25
+  stunIdotartam: 1.5
+  multiShot: 0
+  multiShotMennyiseg: 2
+  multiShotKulonbozoCelpont: 1
+  multiShotKeresesiSugar: 5
+  pattanas: 0
+  pattanasAlapEsely: 20
+  pattanasArmorBonusz: 5
+  pattanasMaxEsely: 80
+  pattanasMaxSzam: 1
+  pattanasSugar: 4
+  _pattanasMaradt: -1
+  mereg: 0
+  meregSebzesMpenkent: 3
+  meregIdotartam: 4
+  meregMaxStack: 5
+  meregVfxPrefab: {fileID: 0}

@@ -60,8 +60,10 @@ public class PvPLobbyUI : MonoBehaviour
     // ── Auto Lobby beállítások ────────────────────────────────────────
 
     [Header("Auto Lobby")]
-    [Tooltip("Hány másodpercig polloz meccset (utána SOLO indul)")]
-    public float autoLobbyWaitSeconds = 10f;
+    [Tooltip("Ha a matchmaking API ennyi másodpercen át egyáltalán nem válaszol (hálózati hiba / szerver leállt), " +
+             "a kliens feladja és SOLO módban indul. A lobby visszaszámlálást a SZERVER vezérli " +
+             "(match_manager.py: LOBBY_COUNTDOWN_SECS), ez a paraméter arra nincs hatással.")]
+    public float autoLobbyWaitSeconds = 60f;
     [Tooltip("Pollozás gyakorisága másodpercekben")]
     public float pollIntervalSeconds  = 2f;
 
@@ -223,6 +225,9 @@ public class PvPLobbyUI : MonoBehaviour
     public void OnWaitLeavePressed()
     {
         if (_autoLobbyCoroutine != null) StopCoroutine(_autoLobbyCoroutine);
+        _autoLobbyCoroutine = null;
+        _autoLobbyMatched   = true;   // a még in-flight callbackek ne hívjanak StartClient-et
+        _autoLobbyInFlight  = false;
         MatchmakingClient.Instance?.LeaveMatchmakingQueue();
         NetworkGameManager.Instance?.Disconnect();
         ShowPanel(modeSelectPanel);
@@ -273,60 +278,126 @@ public class PvPLobbyUI : MonoBehaviour
 
     // ── Auto Lobby coroutine ──────────────────────────────────────────
 
+    // Coroutine-szintű flag-ek a race condition elkerülésére:
+    // - _autoLobbyMatched: ha már egyszer matched-et kaptunk és StartClient elindult,
+    //   minden további (késett) callbacket eldobunk.
+    // - _autoLobbyInFlight: van-e jelenleg pending HTTP kérés a /matchmaking/status-ra
+    //   (megakadályozza hogy lassú WebGL hálón párhuzamos kérések halmozódjanak fel).
+    private bool _autoLobbyMatched = false;
+    private bool _autoLobbyInFlight = false;
+
     IEnumerator AutoLobbyPollCoroutine()
     {
-        // Helyi fallback számláló arra az esetre, ha a server nem küld countdown-t
-        int localCountdown = Mathf.CeilToInt(autoLobbyWaitSeconds);
+        // SOLO fallback: csak akkor lép be, ha a szerver több poll-on át sem válaszol
+        // (matchmaking API leállt vagy hálózati gond). A "várjunk N másodpercig 2.
+        // játékosra" logikát a SZERVER vezeti a countdown mezőn keresztül — ezt
+        // jelenítjük meg pontosan, hogy a kliens-óra ne térjen el a szerverétől.
+        _autoLobbyMatched  = false;
+        _autoLobbyInFlight = false;
+        int consecutiveTimeouts = 0;
+        const int maxConsecutiveTimeouts = 8;   // ~8 poll cikluson át nincs válasz → SOLO
 
         while (true)
         {
+            if (_autoLobbyMatched) yield break;
+            if (_autoLobbyInFlight)
+            {
+                // Még él az előző kérés — ne indítsunk újat, várjuk meg.
+                yield return new WaitForSeconds(0.5f);
+                continue;
+            }
+
+            _autoLobbyInFlight = true;
             bool responseReceived = false;
-            bool done = false;
+            int  polledCount      = 0;
+            int  polledCountdown  = 0;
+            string[] polledNames  = null;
+            int[]    polledRanks  = null;
+            string   pollError    = null;
 
             MatchmakingClient.Instance?.PollMatchmakingStatus(
-                onMatched: (host, port, matchId, playerCount, playerNames) =>
+                onMatched: (host, port, matchId, playerCount, playerNames, playerRanks) =>
                 {
+                    _autoLobbyInFlight = false;
+                    if (_autoLobbyMatched) return;   // késett duplikált válasz – eldobjuk
+                    _autoLobbyMatched = true;
                     responseReceived = true;
-                    done = true;
-                    SetWaitStatus($"Join... ({playerCount} Player)\n{FormatPlayerNames(playerNames)}");
+                    SetWaitStatus($"Join... ({playerCount} Player)\n{FormatPlayerNames(playerNames, playerRanks)}");
                     AudioManager.Instance?.PlaySFX(pvpStartSound);
                     NetworkGameManager.Instance?.StartClient(host, port);
                 },
-                onWaiting: (countdown, playerCount, playerNames) =>
+                onWaiting: (countdown, playerCount, playerNames, playerRanks) =>
                 {
+                    _autoLobbyInFlight = false;
+                    if (_autoLobbyMatched) return;   // már matched, ne írjuk felül a UI-t
                     responseReceived = true;
-                    localCountdown = countdown;
-                    SetWaitStatus($"Waiting: {countdown}s  |  Players: {playerCount}\n{FormatPlayerNames(playerNames)}");
+                    polledCount     = playerCount;
+                    polledCountdown = countdown;
+                    polledNames     = playerNames;
+                    polledRanks     = playerRanks;
                 },
                 onError: err =>
                 {
+                    _autoLobbyInFlight = false;
+                    if (_autoLobbyMatched) return;
                     responseReceived = true;
-                    SetWaitStatus($"Error: {err}");
+                    pollError = err;
                 }
             );
 
-            // Várjuk a HTTP választ (max 2 mp)
+            // Várjuk a HTTP választ. WebGL-en a böngésző fetch lassabb is lehet,
+            // így 8 mp-ig tartjuk magunkat, mielőtt timeoutként könyveljük.
             float waited = 0f;
-            while (!responseReceived && waited < 2f)
+            while (!responseReceived && _autoLobbyInFlight && waited < 8f)
             {
                 yield return new WaitForSeconds(0.1f);
                 waited += 0.1f;
             }
 
-            if (done) yield break;
+            if (_autoLobbyMatched) yield break;
 
-            // Ha a szerver nem válaszolt → helyi countdown csökkentés
-            if (!responseReceived) localCountdown--;
-
-            // Ha helyi countdown lejárt és a szerver nem jelezte a matched-et → SOLO mód
-            if (localCountdown <= 0)
+            if (!responseReceived)
             {
-                SetWaitStatus("Nem találtunk partnert – SOLO mód indul...");
+                // Kérés még in-flight — időtúllépésnek tekintjük, de NEM lőjük el
+                // kívülről (úgyis lefut, és a callbackek `_autoLobbyMatched` alapján
+                // dobják el a stale választ). Csak addig várunk az új poll előtt,
+                // amíg ez beérkezik vagy a SOLO fallback eldönti.
+                consecutiveTimeouts++;
+                SetWaitStatus($"Hálózat lassú... ({consecutiveTimeouts}/{maxConsecutiveTimeouts})");
+                if (consecutiveTimeouts >= maxConsecutiveTimeouts)
+                {
+                    SetWaitStatus("Nem találtunk partnert – SOLO mód indul...");
+                    yield return new WaitForSeconds(1f);
+                    MatchmakingClient.Instance?.LeaveMatchmakingQueue();
+                    StartSoloMode();
+                    _autoLobbyCoroutine = null;
+                    yield break;
+                }
                 yield return new WaitForSeconds(1f);
-                MatchmakingClient.Instance?.LeaveMatchmakingQueue();
-                StartSoloMode();
-                _autoLobbyCoroutine = null;
-                yield break;
+                continue;
+            }
+
+            consecutiveTimeouts = 0;
+
+            if (pollError != null)
+            {
+                SetWaitStatus($"Error: {pollError}");
+            }
+            else
+            {
+                string nameList = FormatPlayerNames(polledNames, polledRanks);
+                if (polledCount < 2)
+                {
+                    // 1 játékos van a sorban: a szerver még nem indította el a countdown-t,
+                    // így nem mutatunk konkrét másodpercszámot.
+                    SetWaitStatus($"Játékosra várakozás...\n{nameList}");
+                }
+                else
+                {
+                    // 2+ játékos: a szerver `countdown` értékét mutatjuk – a meccs pontosan
+                    // akkor indul, amikor ez eléri a 0-t (és a következő poll már "matched").
+                    SetWaitStatus($"Waiting: {polledCountdown}s  |  Players: {polledCount}\n{nameList}");
+                }
             }
 
             yield return new WaitForSeconds(1f);
@@ -412,10 +483,28 @@ public class PvPLobbyUI : MonoBehaviour
         if (waitStatusText != null) waitStatusText.text = msg;
     }
 
-    string FormatPlayerNames(string[] names)
+    string FormatPlayerNames(string[] names, int[] ranks = null)
     {
         if (names == null || names.Length == 0) return "";
-        return string.Join("\n", names);
+
+        // Párosítjuk a neveket a rangokkal, majd növekvő rang szerint rendezünk (1 = legjobb)
+        var pairs = new (string name, int rank)[names.Length];
+        for (int i = 0; i < names.Length; i++)
+            pairs[i] = (names[i], ranks != null && i < ranks.Length ? ranks[i] : 0);
+
+        System.Array.Sort(pairs, (a, b) => a.rank.CompareTo(b.rank));
+
+        bool hasRank = ranks != null && ranks.Length > 0;
+        var sb = new System.Text.StringBuilder();
+        for (int i = 0; i < pairs.Length; i++)
+        {
+            if (i > 0) sb.Append('\n');
+            if (hasRank && pairs[i].rank > 0)
+                sb.Append($"{pairs[i].name}  - Rank {pairs[i].rank}");
+            else
+                sb.Append(pairs[i].name);
+        }
+        return sb.ToString();
     }
 
     void ShowPanel(GameObject show)

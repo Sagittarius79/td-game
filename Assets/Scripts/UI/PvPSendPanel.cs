@@ -66,8 +66,11 @@ public class PvPSendPanel : MonoBehaviour
 
         ClosePanel();
 
-        // TESZT: mindig látható – éles verzióhoz visszaállítani PvP ellenőrzésre
-        if (sendButton != null) sendButton.SetActive(true);
+        bool isSsf = UserProgressManager.Instance != null
+                     && UserProgressManager.Instance.HasCharacter
+                     && UserProgressManager.Instance.Data.IsSSF;
+
+        if (sendButton != null) sendButton.SetActive(!isSsf);
     }
 
     void Update()

@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SendableEnemyDefinition
   enemyName: Gel
   icon: {fileID: 204694895022409994, guid: f168b6469fd20784993156baebf1ed17, type: 3}
-  goldCost: 100
+  goldCost: 180
   prefab: {fileID: 6345430543806320468, guid: f526518586294bb47b2a3a77cb300194, type: 3}
   sendCount: 1
   minSpawnDelay: 0.2

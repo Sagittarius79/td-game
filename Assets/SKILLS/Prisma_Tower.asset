@@ -26,7 +26,7 @@ MonoBehaviour:
     prerequisites: []
     effectType: 0
     effectValuePerLevel: 0
-    fixedCostPerLevel: 3
+    fixedCostPerLevel: 1
     minCharacterLevel: 10
   - id: Prisma_Tower_DMG
     displayName: Prisma DMG Boost

@@ -33,6 +33,21 @@ public class TowerSelector : MonoBehaviour
         if (!tapped) return;
 
         Vector3 worldPos = GetWorldPosition();
+
+        // Ellenség kattintás – focus (csak ha Target Tower le van építve és fel van töltve)
+        Enemy enemyHit = GetEnemyAt(worldPos);
+        if (enemyHit != null && Tower.IsTargetingTowerBuilt)
+        {
+            // Csak más ellenség esetén és csak ha van charge
+            if (Enemy.FocusTarget != enemyHit && TargetTower.AnyCharged())
+            {
+                TargetTower.TryConsumeCharge();
+                Enemy.SetFocusTarget(enemyHit);
+            }
+            SelectTower(null);
+            return;
+        }
+
         Tower hit = GetTowerAt(worldPos);
         SelectTower(hit);
 
@@ -90,6 +105,31 @@ public class TowerSelector : MonoBehaviour
             if (rc != null) return rc;
         }
         return null;
+    }
+
+    Enemy GetEnemyAt(Vector3 worldPos)
+    {
+        Enemy best = null;
+        float bestDist = float.MaxValue;
+
+        foreach (var enemy in Enemy.AllEnemies)
+        {
+            if (enemy == null || enemy.IsDead) continue;
+
+            // Sprite bounds alapú hit-test – ha van SpriteRenderer, annak méretét használjuk
+            float hitRadius = 0.4f;
+            var sr = enemy.spriteRenderer;
+            if (sr != null)
+                hitRadius = Mathf.Max(sr.bounds.extents.x, sr.bounds.extents.y) * 1.2f;
+
+            float dist = Vector3.Distance(worldPos, enemy.transform.position);
+            if (dist <= hitRadius && dist < bestDist)
+            {
+                best = enemy;
+                bestDist = dist;
+            }
+        }
+        return best;
     }
 
     Tower GetTowerAt(Vector3 worldPos)

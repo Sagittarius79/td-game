@@ -60,6 +60,19 @@ public class Projectile : MonoBehaviour
     [HideInInspector] public float prismaBounceRange    = 0f;
     [HideInInspector] public int   prismaBouncesLeft    = 0;
 
+    [Header("Turul – Repeat")]
+    [Tooltip("Ha be van kapcsolva, találat után ívesen visszafordul és újra átrepül a célon")]
+    public bool repeatAttack = false;
+    [Tooltip("Hányszor ismétli meg az átrepülést (1 = egyszer fordul vissza)")]
+    [Min(1)]
+    public int repeatCount = 1;
+    [Tooltip("Mennyire széles az ív (nagyobb = nagyobb kerülő)")]
+    public float repeatArcWidth = 2f;
+    [Tooltip("Minden egymást követő találat ennyivel sebez többet (pl. 5 = +5 az első után, +10 a második után...)")]
+    public float repeatDamageIncrement = 0f;
+    [Tooltip("Hány csapást hajthat végre range-en kívül mielőtt megsemmisül (0 = azonnal megsemmisül ha kiment)")]
+    public int repeatOutOfRangeHits = 0;
+
     [Header("Célzás")]
     [Tooltip("Ha be van kapcsolva, ez a lövedék el tudja találni a repülő ellenségeket is")]
     public bool canHitFlying = false;
@@ -167,22 +180,40 @@ public class Projectile : MonoBehaviour
     // ══════════════════════════════════════════════════════
 
     private Enemy target;
-    private float damage;
-    private float aoeDamage;
-    private float magicDamage;
-    private bool isAreaDamage;
-    private float areaRadius;
+    [HideInInspector] public float damage;
+    [HideInInspector] public float aoeDamage;
+    [HideInInspector] public float magicDamage;
+    [HideInInspector] public bool isAreaDamage;
+    [HideInInspector] public float areaRadius;
     public DamageType damageType    = DamageType.Physical;
-    private float      critChance          = 0f;
-    private float      armorPierce         = 0f;
-    private float      stunChance          = 0f;
-    private float      trapChance          = 0f;
+    [HideInInspector] public float critChance   = 0f;
+    [HideInInspector] public float armorPierce  = 0f;
+    [HideInInspector] public float stunChance   = 0f;
+    [HideInInspector] public float trapChance   = 0f;
+
+    public Enemy GetTarget() => target;
     private int        _pierceRemaining    = 0;
     private List<Enemy> _pierceHit         = new List<Enemy>();
     public float       javelinActiveCritChance = 0f;
 
     private bool hasHit = false;
     private float lifetimeTimer = 0f;
+
+    // ── Repeat állapot ────────────────────────────────────
+    private int     _repeatRemaining  = 0;
+    private int     _repeatHitCount   = 0;
+    private float   _baseDamage       = 0f;
+    private bool    _isReturning      = false;
+    private Vector3 _arcControlPoint;
+    private Vector3 _arcStart;
+    private float   _arcTimer         = 0f;
+    private float   _arcDuration      = 0.3f;
+    private const float REPEAT_MIN_INTERVAL = 0.1f;
+
+    // ── Torony adatok (Repeat range ellenőrzéshez) ────────
+    [HideInInspector] public Vector3 towerPosition;
+    [HideInInspector] public float   towerRange = -1f;
+    private int _outOfRangeHitsRemaining = 0;
 
     // ══════════════════════════════════════════════════════
     //  INICIALIZÁLÁS
@@ -204,6 +235,11 @@ public class Projectile : MonoBehaviour
         this.areaRadius      = areaRadius;
         _pierceRemaining     = pierceCount;
         _pierceHit.Clear();
+        _repeatRemaining          = repeatAttack ? repeatCount : 0;
+        _repeatHitCount           = 0;
+        _outOfRangeHitsRemaining  = repeatOutOfRangeHits;
+        _isReturning              = false;
+        _arcTimer                 = 0f;
         this.damageType   = damageType;
         this.critChance   = critChance;
         this.armorPierce  = armorPierce;
@@ -218,6 +254,13 @@ public class Projectile : MonoBehaviour
     void Update()
     {
         if (hasHit) return;
+
+        // ── Repeat: ív fázis – lifetime nem nő közben ─────
+        if (_isReturning)
+        {
+            UpdateRepeatArc();
+            return;
+        }
 
         // Lifetime lejárt → megsemmisülés (elvétett lövés)
         lifetimeTimer += Time.deltaTime;
@@ -253,6 +296,57 @@ public class Projectile : MonoBehaviour
         }
     }
 
+    void UpdateRepeatArc()
+    {
+        if (target == null || target.IsDead)
+        {
+            Destroy(gameObject);
+            return;
+        }
+
+        // Ha a torony range ismert és a célpont kiment – out-of-range ellenőrzés
+        if (towerRange > 0f)
+        {
+            float tileSize   = GridManager.Instance != null
+                ? (GridManager.Instance.tileWidth + GridManager.Instance.tileHeight) * 0.5f
+                : 1f;
+            float worldRange = towerRange * tileSize;
+
+            if (Vector3.Distance(towerPosition, target.transform.position) > worldRange)
+            {
+                if (_outOfRangeHitsRemaining <= 0)
+                {
+                    Destroy(gameObject);
+                    return;
+                }
+                // Van még engedélyezett out-of-range csapás – folytatja
+            }
+        }
+
+        _arcTimer += Time.deltaTime;
+        float t = Mathf.Clamp01(_arcTimer / _arcDuration);
+
+        // Kvadratikus Bezier: célpont → kontrol pont → célpont (hurок)
+        Vector3 p0 = _arcStart;                  // = célpont pozíciója
+        Vector3 p1 = _arcControlPoint;           // oldalt kicsapva
+        Vector3 p2 = target.transform.position;  // visszatér a célponthoz
+
+        Vector3 prev = transform.position;
+        transform.position = Mathf.Pow(1 - t, 2) * p0
+                           + 2 * (1 - t) * t * p1
+                           + t * t * p2;
+
+        Vector3 dir = transform.position - prev;
+        if (dir != Vector3.zero)
+            transform.up = dir.normalized;
+
+        if (_arcTimer >= Mathf.Max(_arcDuration, REPEAT_MIN_INTERVAL))
+        {
+            _isReturning = false;
+            Impact();
+        }
+    }
+
     // ══════════════════════════════════════════════════════
     //  BECSAPÓDÁS
     // ══════════════════════════════════════════════════════
@@ -266,9 +360,23 @@ public class Projectile : MonoBehaviour
         return immune;
     }
 
+    // ── IMMUN szöveg cooldown (per-lövedék típus azonosítója + ellenség) ──────
+    // Statikus dictionary – ellenségenként tárolja az utolsó IMMUN szöveg idejét.
+    // Megakadályozza, hogy gyorsan tüzelő tornyok vagy AOE lövedékek
+    // minden frame-ben új IMMUN szöveget spawnoljanak ugyanarra az ellenségre.
+    private static readonly Dictionary<Enemy, float> _immuneTextCooldowns = new();
+    private const float IMMUNE_TEXT_COOLDOWN = 0.6f;
+
     void ShowImmuneText(Enemy enemy)
     {
-        if (enemy.floatingDamageTextPrefab == null) return;
+        if (enemy == null || enemy.floatingDamageTextPrefab == null) return;
+
+        float now = Time.time;
+        if (_immuneTextCooldowns.TryGetValue(enemy, out float last) &&
+            now - last < IMMUNE_TEXT_COOLDOWN)
+            return;
+
+        _immuneTextCooldowns[enemy] = now;
         var go = Instantiate(enemy.floatingDamageTextPrefab, enemy.transform.position, Quaternion.identity);
         go.GetComponent<FloatingDamageText>()?.InitializeImmune();
     }
@@ -277,6 +385,14 @@ public class Projectile : MonoBehaviour
     {
         if (hasHit) return;
         hasHit = true;
+
+        // Repeat: célpont élő állapotát a sebzés ELŐTT mentjük el
+        Enemy repeatTarget   = target;
+        bool  targetWasAlive = target != null && !target.IsDead;
+
+        // Sebzés növekmény: alap damage + találatszám × növekmény
+        if (_repeatHitCount == 0) _baseDamage = damage;  // első találatnál elmentjük az alap értéket
+        damage = _baseDamage + repeatDamageIncrement * _repeatHitCount;
 
         // Effekt spawnolása és méretezése az AOE sugárhoz
         if (impactEffect != null)
@@ -307,6 +423,7 @@ public class Projectile : MonoBehaviour
                 if (magicDamage > 0f) target.TakeDamage(magicDamage, DamageType.Magic);
                 ApplyBurning(target);
                 ApplyPoison(target);
+                GetComponent<altalanos_fejlesztesek>()?.OnHit(target);
                 if (teleportOnHit) target.TeleportToStart();
             }
             // Körülötte lévők → aoeDamage (közvetlen célpont kihagyva)
@@ -326,6 +443,7 @@ public class Projectile : MonoBehaviour
                 if (magicDamage > 0f) target.TakeDamage(magicDamage, DamageType.Magic);
                 ApplyBurning(target);
                 ApplyPoison(target);
+                GetComponent<altalanos_fejlesztesek>()?.OnHit(target);
                 if (teleportOnHit) target.TeleportToStart();
             }
             // Splash ellenségek – közvetlen célpont kizárva, alap damage
@@ -357,6 +475,7 @@ public class Projectile : MonoBehaviour
             ApplyPoison(target);
             ApplyPrismaElement(target);
             ApplyPrismaBounce(target);
+            GetComponent<altalanos_fejlesztesek>()?.OnHit(target);
 
             if (teleportOnHit)
                 target.TeleportToStart();
@@ -384,6 +503,44 @@ public class Projectile : MonoBehaviour
                 hasHit  = false;
                 return;
             }
+        }
+
+        // Repeat: ívesen visszafordul és újra megtámadja a célt
+        // targetWasAlive: a sebzés ELŐTTI állapot – így ha az első találat öli meg, is visszafordul
+        if (repeatAttack && _repeatRemaining > 0 && repeatTarget != null && targetWasAlive)
+        {
+            _repeatRemaining--;
+            _repeatHitCount++;
+            hasHit        = false;
+            _isReturning  = true;
+            _arcTimer     = 0f;
+            lifetimeTimer = 0f;
+
+            // Ha range-en kívül volt a célpont, vonjuk le az out-of-range keretet
+            if (towerRange > 0f)
+            {
+                float tileSize   = GridManager.Instance != null
+                    ? (GridManager.Instance.tileWidth + GridManager.Instance.tileHeight) * 0.5f
+                    : 1f;
+                if (Vector3.Distance(towerPosition, repeatTarget.transform.position) > towerRange * tileSize)
+                    _outOfRangeHitsRemaining = Mathf.Max(0, _outOfRangeHitsRemaining - 1);
+            }
+
+            // Start és vég = célpont pozíciója → a Bezier hurkot alkot (kimegy, visszajön)
+            // Nincs teleportálás – a lövedék a találat pontjáról indul
+            _arcStart = repeatTarget.transform.position;
+
+            // Kontrol pont: merőlegesen kicsapva → ez adja a hurок szélességét
+            Vector3 forward  = transform.up;
+            Vector3 perp     = new Vector3(-forward.y, forward.x, 0f);
+            float   side     = (_repeatRemaining % 2 == 0) ? 1f : -1f;
+            _arcControlPoint = repeatTarget.transform.position
+                              + perp * side * repeatArcWidth
+                              + forward * repeatArcWidth * 0.5f;
+
+            // Ív időtartama: repeatArcWidth alapján (min 0.2s)
+            _arcDuration = Mathf.Max(0.2f, repeatArcWidth / moveSpeed * 4f);
+            return;
         }
 
         Destroy(gameObject);
@@ -580,14 +737,12 @@ public class Projectile : MonoBehaviour
         {
             if (enemy.IsDead) continue;
             if (enemy == excludeTarget) continue;
-            if (IsImmune(enemy)) continue;
             float dist = Vector3.Distance(transform.position, enemy.transform.position);
-            if (dist <= worldRadius)
-            {
-                enemy.TakeDamage(dmgAmount, damageType);
-                if (teleportOnHit)
-                    enemy.TeleportToStart();
-            }
+            if (dist > worldRadius) continue;
+            if (IsImmune(enemy)) continue;
+            enemy.TakeDamage(dmgAmount, damageType);
+            if (teleportOnHit)
+                enemy.TeleportToStart();
         }
     }
 

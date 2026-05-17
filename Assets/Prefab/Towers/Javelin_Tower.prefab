@@ -138,9 +138,9 @@ MonoBehaviour:
   targetingMode: 3
   projectilePrefab: {fileID: 351412378503182248, guid: 3c5505d343b97b34cafab1c2af54ebca, type: 3}
   shootPoint: {fileID: 1061104476663843507}
-  maxHealth: 100
-  armor: 1
-  magicResist: 1
+  maxHealth: 200
+  armor: 10
+  magicResist: 10
   isLvl2: 0
   priceSkillTree: {fileID: 11400000, guid: 0b8de66c2f6bb524996ed935b59bc42a, type: 2}
   towerRenderer: {fileID: 1865219156741374363}

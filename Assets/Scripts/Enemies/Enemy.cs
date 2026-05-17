@@ -41,6 +41,8 @@ public class Enemy : MonoBehaviour
     public float armor = 0f;
     [Tooltip("Mágikus sebzés csökkentése. Ugyanúgy működik mint az armor, de mágikus támadások ellen.")]
     public float magicResist = 0f;
+    [Tooltip("Ha be van pipálva, a lény minden sebzésből csak a felét kapja meg (armor/magicResist után alkalmazva).")]
+    public bool halfDamage = false;
 
     [Header("Vizuális")]
     public SpriteRenderer spriteRenderer;
@@ -116,6 +118,39 @@ public class Enemy : MonoBehaviour
     private static List<Enemy> allEnemies = new List<Enemy>();
     public static IReadOnlyList<Enemy> AllEnemies => allEnemies;
 
+    // ── Focus target (kattintásra elsődleges célpont) ───────────────
+    private static Enemy _focusTarget;
+    public  static Enemy FocusTarget => _focusTarget;
+
+    [Header("Focus jelzés")]
+    [Tooltip("Opcionális jelző GameObject (pl. keret/nyíl) – fokuszált állapotban aktív")]
+    public GameObject focusIndicator;
+
+    /// <summary>Új célpont kijelölése (csak nem-null). TowerSelector hívja.</summary>
+    public static void SetFocusTarget(Enemy enemy)
+    {
+        if (enemy == null) return;
+        if (_focusTarget != null && _focusTarget != enemy)
+            _focusTarget.SetFocusVisual(false);
+        _focusTarget = enemy;
+        _focusTarget.SetFocusVisual(true);
+    }
+
+    /// <summary>Focus törlése – kastély elérés, vagy Target Tower lerombolása esetén.</summary>
+    public static void ClearFocusTarget()
+    {
+        if (_focusTarget != null)
+            _focusTarget.SetFocusVisual(false);
+        _focusTarget = null;
+    }
+
+
+    void SetFocusVisual(bool focused)
+    {
+        if (focusIndicator != null)
+            focusIndicator.SetActive(focused);
+    }
+
     void OnEnable()  => allEnemies.Add(this);
     void OnDisable() => allEnemies.Remove(this);
 
@@ -125,6 +160,10 @@ public class Enemy : MonoBehaviour
 
     private float currentHealth;
     private int currentWaypointIndex = 0;
+    public  int CurrentWaypointIndex => currentWaypointIndex;
+
+    /// <summary>SplitOnDeath állítja be – az anya szörny waypoint indexéről indul.</summary>
+    [HideInInspector] public int overrideStartWaypointIndex = -1;
     protected bool isDead = false;
     private bool reachedCastle = false;
     private Vector3[] worldWaypoints;   // az út waypoint-jai world koordinátában (eltolással)
@@ -204,8 +243,16 @@ public class Enemy : MonoBehaviour
             worldWaypoints[i] = new Vector3(wp.x + xOffset, wp.y + yOffset, wp.z);
         }
 
-        transform.position = worldWaypoints[0];
-        currentWaypointIndex = 1;
+        if (overrideStartWaypointIndex > 0 && overrideStartWaypointIndex < worldWaypoints.Length)
+        {
+            currentWaypointIndex = overrideStartWaypointIndex;
+            transform.position   = worldWaypoints[overrideStartWaypointIndex - 1];
+        }
+        else
+        {
+            transform.position   = worldWaypoints[0];
+            currentWaypointIndex = 1;
+        }
 
         UpdateSortingOrder();
 
@@ -414,6 +461,9 @@ public class Enemy : MonoBehaviour
             actualDamage = Mathf.Max(0f, amount - resistance);
         }
 
+        if (halfDamage)
+            actualDamage *= 0.5f;
+
         if (actualDamage <= 0f) return false;
 
         currentHealth -= actualDamage;
@@ -465,6 +515,9 @@ public class Enemy : MonoBehaviour
     {
         if (isDead) return;
         isDead = true;
+
+        if (_focusTarget == this)
+            ClearFocusTarget();
 
         OnDied?.Invoke(this);
 
@@ -562,6 +615,9 @@ public class Enemy : MonoBehaviour
     {
         if (reachedCastle) return;
         reachedCastle = true;
+
+        if (_focusTarget == this)
+            ClearFocusTarget();
 
         // Maradék HP-val arányos sebzés a kastélynak
         int dmg = Mathf.CeilToInt(currentHealth);

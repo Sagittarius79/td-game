@@ -29,7 +29,8 @@ public enum TargetingMode
     LegnagyobbHP,           // legtöbb életpontja van
     LegkozelebbiSzorny,     // legközelebb van a toronyhoz
     LegtavolabbiSzorny,     // legtávolabb van a toronyhoz
-    Leggyorsabb             // legnagyobb moveSpeed
+    Leggyorsabb,            // legnagyobb moveSpeed
+    Leglassabb              // legkisebb moveSpeed
 }
 
 public abstract class Tower : MonoBehaviour
@@ -80,6 +81,10 @@ public abstract class Tower : MonoBehaviour
              "Ha ki van kapcsolva (Lvl1), dekorált cellára nem lehet lerakni.")]
     public bool isLvl2 = false;
 
+    [Header("Célzás torony")]
+    [Tooltip("Ha be van kapcsolva, ez a torony engedélyezi a kézi célzás (focus fire) funkciót.")]
+    public bool isTargetingTower = false;
+
     [Header("Skill Tree árhatás")]
     [Tooltip("Ha meg van adva, minden ebbe a fába elköltött skill pont 1%-al emeli a torony árát.")]
     public SkillTreeDefinition priceSkillTree = null;
@@ -119,6 +124,11 @@ public abstract class Tower : MonoBehaviour
     // ── Statikus lista: összes torony (lekérdezéshez) ─────
     private static List<Tower> allTowers = new List<Tower>();
     public static IReadOnlyList<Tower> AllTowers => allTowers;
+
+    public static bool IsTargetingTowerBuilt
+    {
+        get { foreach (var t in allTowers) if (t != null && t.isTargetingTower) return true; return false; }
+    }
 
     void OnEnable()
     {
@@ -208,6 +218,15 @@ public abstract class Tower : MonoBehaviour
 
         if (_currentHealth <= 0f)
         {
+            // Ha ez volt az utolsó Target Tower, focus törlés
+            if (isTargetingTower)
+            {
+                int remaining = 0;
+                foreach (var t in allTowers)
+                    if (t != null && t != this && t.isTargetingTower) remaining++;
+                if (remaining == 0)
+                    Enemy.ClearFocusTarget();
+            }
             GridManager.Instance?.PlaceRubble(gridCell);
             Destroy(gameObject);
         }
@@ -282,7 +301,7 @@ public abstract class Tower : MonoBehaviour
         // Célpont frissítése – ha nincs, meghalt, vagy kiment a hatótávból
         if (currentTarget == null || currentTarget.IsDead || !IsInRange(currentTarget))
             currentTarget = FindBestTarget();
-        else if (targetingMode != TargetingMode.Alapertelmezett)
+        else if (targetingMode != TargetingMode.Alapertelmezett || Enemy.FocusTarget != null)
             currentTarget = FindBestTarget();
 
         // Az időzítő folyamatosan telik, célponttól függetlenül
@@ -355,6 +374,16 @@ public abstract class Tower : MonoBehaviour
                                 projectilePrefab.GetComponent<Projectile>() is Projectile p &&
                                 p.canHitFlying;
 
+        // Focus target: ha le van építve a Target Tower és a játékos kijelölt egy lényt
+        if (IsTargetingTowerBuilt)
+        {
+            var focus = Enemy.FocusTarget;
+            if (focus != null && !focus.IsDead &&
+                Vector3.Distance(transform.position, focus.transform.position) <= rangeWorld &&
+                (!focus.isFlying || projCanHitFlying))
+                return focus;
+        }
+
         // Alapértelmezett: az első hatótávon belüli élő ellenség
         if (targetingMode == TargetingMode.Alapertelmezett)
         {
@@ -403,6 +432,7 @@ public abstract class Tower : MonoBehaviour
             case TargetingMode.LegkozelebbiSzorny:    return  distToTower;
             case TargetingMode.LegtavolabbiSzorny:    return -distToTower;
             case TargetingMode.Leggyorsabb:           return -enemy.moveSpeed;
+            case TargetingMode.Leglassabb:            return  enemy.moveSpeed;
             default:                                  return  enemy.DistanceToCastle;
         }
     }
@@ -433,6 +463,10 @@ public abstract class Tower : MonoBehaviour
         var p = proj.GetComponent<Projectile>();
         if (p != null)
             p.Initialize(currentTarget, GetEffectiveDamage(), isAreaDamage, areaRadius, damageType);
+
+        var af = proj.GetComponent<altalanos_fejlesztesek>();
+        if (af != null)
+            af.SetTowerData(transform.position, GetEffectiveRange());
     }
 
     // ══════════════════════════════════════════════════════

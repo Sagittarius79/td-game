@@ -23,7 +23,10 @@ public class CharacterEntryUI : MonoBehaviour
     public TextMeshProUGUI characterNameText;
     public TextMeshProUGUI levelText;
     public TextMeshProUGUI statsText;
-    public TextMeshProUGUI skillPointsText;     // elosztatlan skill pontok
+    public TextMeshProUGUI modeText;
+    public TextMeshProUGUI rankText;            // pl. "Rank 21"
+    public GameObject skillPointsRow;           // NormalBView/SkillPoint konténer (szám + label együtt)
+    public TextMeshProUGUI skillPointsText;     // elosztatlan skill pontok száma
     public Image xpBarFill;
     public Button selectButton;
     public Button deleteButton;                 // szemetes / X ikon gomb
@@ -49,9 +52,11 @@ public class CharacterEntryUI : MonoBehaviour
 
         if (characterNameText != null) characterNameText.text = data.characterName;
         if (levelText         != null) levelText.text         = $"Lvl {data.Level}";
-        if (statsText         != null) statsText.text         = $"{data.totalXP} XP  •  {data.totalWins}W / {data.totalLosses}L";
+        if (modeText          != null) modeText.text          = data.IsSSF ? "SSF" : "PvP";
+        if (statsText         != null) statsText.text         = $"{data.XPInCurrentLevel}/{data.XPNeededForNextLevel}";
         if (xpBarFill         != null) xpBarFill.fillAmount   = data.LevelProgress;
         RefreshSkillPoints(data.availableSkillPoints);
+        FetchAndShowRank(data);
 
         // Törlés gomb elrejtése
         if (deleteButton != null) deleteButton.gameObject.SetActive(false);
@@ -74,9 +79,11 @@ public class CharacterEntryUI : MonoBehaviour
         // Szövegek
         if (characterNameText != null) characterNameText.text = data.characterName;
         if (levelText         != null) levelText.text         = $"Lvl {data.Level}";
-        if (statsText         != null) statsText.text         = $"{data.totalXP} XP  •  {data.totalWins}W / {data.totalLosses}L";
+        if (modeText          != null) modeText.text          = data.IsSSF ? "SSF" : "PvP";
+        if (statsText         != null) statsText.text         = $"{data.XPInCurrentLevel}/{data.XPNeededForNextLevel}";
         if (xpBarFill         != null) xpBarFill.fillAmount   = data.LevelProgress;
         RefreshSkillPoints(data.availableSkillPoints);
+        FetchAndShowRank(data);
 
         // Gombok
         if (selectButton != null)
@@ -125,8 +132,44 @@ public class CharacterEntryUI : MonoBehaviour
 
     void RefreshSkillPoints(int points)
     {
-        if (skillPointsText == null) return;
-        skillPointsText.gameObject.SetActive(points > 0);
-        skillPointsText.text = $"{points}";
+        bool show = points > 0;
+        if (skillPointsRow  != null) skillPointsRow.SetActive(show);
+        if (skillPointsText != null)
+        {
+            skillPointsText.gameObject.SetActive(show);
+            skillPointsText.text = $"{points}";
+        }
     }
+
+    void FetchAndShowRank(UserProgressData data)
+    {
+        if (rankText == null) return;
+
+        var mmc = MatchmakingClient.Instance;
+
+        if (data != null && data.IsSSF)
+        {
+            // Cache-elt SSF rang azonnali megjelenítése, majd frissítés
+            rankText.text = mmc != null && mmc.CachedSSFRank > 0
+                ? $"SSF | Rank {mmc.CachedSSFRank}"
+                : "SSF | Rank –";
+
+            mmc?.FetchMySSFRank(
+                onSuccess: rank => { if (rankText != null) rankText.text = $"SSF | Rank {rank}"; },
+                onError:   _    => { }
+            );
+            return;
+        }
+
+        if (mmc == null) { rankText.text = "Rank –"; return; }
+
+        // Cache-elt PvP rang azonnali megjelenítése amíg a friss adat megérkezik
+        rankText.text = mmc.CachedRank > 0 ? $"Rank {mmc.CachedRank}" : "Rank –";
+
+        mmc.FetchMyRank(
+            onSuccess: rank => { if (rankText != null) rankText.text = $"Rank {rank}"; },
+            onError:   _    => { }
+        );
+    }
+
 }

@@ -177,8 +177,10 @@ public class Castle : MonoBehaviour
             // Solo módban a szokásos Game Over triggerelése
             if (NetworkGameManager.Instance != null && NetworkGameManager.Instance.IsPvPMode)
                 NetworkGameManager.Instance.OnLocalCastleDestroyed();
-            else
+            else if (GameManager.Instance != null)
                 GameManager.Instance.TriggerGameOver();
+            else
+                Debug.LogError("Castle: GameManager.Instance NULL – game over nem triggerelhető!");
         }
     }
 }

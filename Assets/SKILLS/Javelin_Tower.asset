@@ -26,7 +26,7 @@ MonoBehaviour:
     prerequisites: []
     effectType: 0
     effectValuePerLevel: 0
-    fixedCostPerLevel: 5
+    fixedCostPerLevel: 1
     minCharacterLevel: 10
   - id: Javelin_DMG
     displayName: Javelin DMG Boost

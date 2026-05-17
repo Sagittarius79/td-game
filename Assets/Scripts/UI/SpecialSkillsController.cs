@@ -17,6 +17,7 @@ public class SpecialSkillsController : MonoBehaviour
     public Button javelinButton;
     public Button prismaButton;
     public Button buildingsButton;
+    public Button turulButton;
     public Button backButton;
 
     void Awake()
@@ -46,6 +47,9 @@ public class SpecialSkillsController : MonoBehaviour
 
         if (buildingsButton != null)
             buildingsButton.onClick.AddListener(() => SceneManager.LoadScene("Buildings_skill_tree"));
+
+        if (turulButton != null)
+            turulButton.onClick.AddListener(() => SceneManager.LoadScene("Turul_skill_tree"));
 
         if (backButton != null)
             backButton.onClick.AddListener(Hide);

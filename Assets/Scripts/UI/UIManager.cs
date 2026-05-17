@@ -45,6 +45,20 @@ public class UIManager : MonoBehaviour
     public GameObject waveAnnouncerPanel;
     public TextMeshProUGUI waveAnnouncerText;
 
+    [Header("Kiesési értesítő")]
+    [Tooltip("Képernyő közepén megjelenő panel – pl. félátlátszó sötét sáv")]
+    public GameObject eliminationPanel;
+    [Tooltip("A kiesett játékos nevét megjelenítő szöveg")]
+    public TextMeshProUGUI eliminationText;
+    [Tooltip("Hang, ami lejátszódik kieséskor")]
+    public AudioClip eliminationSound;
+    [Tooltip("Másodpercek amíg látható az értesítő")]
+    public float eliminationDuration = 3f;
+
+    [Header("Győzelmi hang")]
+    [Tooltip("Hang, ami lejátszódik amikor a játékos nyer")]
+    public AudioClip victorySound;
+
     [Header("XP kijelzés – játék vége")]
     [Tooltip("Pl. \"+150 XP\" – az ebben a meccsben szerzett XP")]
     public TextMeshProUGUI xpGainedText;
@@ -62,6 +76,7 @@ public class UIManager : MonoBehaviour
     public TextMeshProUGUI xpBreakdownText;
 
     private Coroutine notificationCoroutine;
+    private Coroutine eliminationCoroutine;
     private int _levelBeforeGame = 1;   // szint a meccs előtt – szintlépés detektáláshoz
 
     void Awake()
@@ -202,6 +217,25 @@ public class UIManager : MonoBehaviour
         notificationText.gameObject.SetActive(false);
     }
 
+    // ── Kiesési értesítő ─────────────────────────────────────────
+
+    public void ShowEliminationNotice(string playerName)
+    {
+        AudioManager.Instance?.PlaySFX(eliminationSound);
+        if (eliminationPanel == null) return;
+        if (eliminationCoroutine != null) StopCoroutine(eliminationCoroutine);
+        eliminationCoroutine = StartCoroutine(EliminationRoutine(playerName));
+    }
+
+    IEnumerator EliminationRoutine(string playerName)
+    {
+        if (eliminationText != null)
+            eliminationText.text = playerName;
+        eliminationPanel.SetActive(true);
+        yield return new WaitForSeconds(eliminationDuration);
+        eliminationPanel.SetActive(false);
+    }
+
     // ── Játék vége ────────────────────────────────────────────────
 
     void ShowGameOver()
@@ -215,6 +249,7 @@ public class UIManager : MonoBehaviour
         if (pvpMode)
         {
             won = NetworkGameManager.Instance.LastResultWon;
+            if (won) AudioManager.Instance?.PlaySFX(victorySound);
             if (gameOverTitle    != null) gameOverTitle.text    = won ? "You WIN!" : "You LOSE!";
             if (gameOverSubtitle != null) gameOverSubtitle.text = won
                 ? "Your opponent's castle has fallen!"
@@ -228,6 +263,7 @@ public class UIManager : MonoBehaviour
                 $"You reached wave {GameManager.Instance.CurrentWave}.";
         }
 
+        UpdateSSFStats();
         ShowXPResult(won);
     }
 
@@ -235,10 +271,44 @@ public class UIManager : MonoBehaviour
     {
         if (gameOverPanel == null) return;
         gameOverPanel.SetActive(true);
+        AudioManager.Instance?.PlaySFX(victorySound);
         if (gameOverTitle    != null) gameOverTitle.text    = "VICTORY!";
         if (gameOverSubtitle != null) gameOverSubtitle.text = "You defended the castle!";
 
+        UpdateSSFStats();
         ShowXPResult(won: true);
+    }
+
+    /// <summary>
+    /// SSF karakternél elmenti a max hullámot és a játékban töltött időt,
+    /// majd szinkronizál a szerverrel.
+    /// </summary>
+    void UpdateSSFStats()
+    {
+        var upm = UserProgressManager.Instance;
+        if (upm == null || !upm.HasCharacter || !upm.Data.IsSSF) return;
+
+        int reachedWave    = GameManager.Instance?.CurrentWave ?? 0;
+        int elapsedSeconds = GameManager.Instance?.ElapsedPlaySeconds ?? 0;
+
+        var data = upm.Data;
+        if (reachedWave > data.maxWave)
+        {
+            // Új rekord – az idő az ehhez a futáshoz tartozó érték
+            data.maxWave          = reachedWave;
+            data.totalPlaySeconds = elapsedSeconds;
+        }
+        else if (reachedWave == data.maxWave && elapsedSeconds > 0 &&
+                 (data.totalPlaySeconds == 0 || elapsedSeconds < data.totalPlaySeconds))
+        {
+            // Azonos max wave, de gyorsabb idő – megőrizzük a jobbat
+            data.totalPlaySeconds = elapsedSeconds;
+        }
+        // Ha reachedWave < data.maxWave: nem frissítünk semmit
+
+        upm.Save();
+        ServerSyncManager.GetOrCreate().TriggerSync();
+        Debug.Log($"[SSF] Stats mentve – maxWave: {data.maxWave}, bestRunSeconds: {data.totalPlaySeconds}");
     }
 
     void ReturnToMainMenu()
@@ -313,5 +383,7 @@ public class UIManager : MonoBehaviour
                     xpBreakdownText.text = $"{xpMgr.LastMatchSentHP} HP = {capNote}{xpMgr.LastMatchAwardedXP} XP";
             }
         }
+
+        MatchmakingClient.Instance?.RefreshRank();
     }
 }

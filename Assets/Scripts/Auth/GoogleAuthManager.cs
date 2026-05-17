@@ -139,9 +139,42 @@ public class GoogleAuthManager : MonoBehaviour
     {
         if (task.IsFaulted)
         {
-            string error = "Ismeretlen hiba";
-            if (task.Exception?.InnerException != null)
+            string error      = "Ismeretlen hiba";
+            bool   silentOnly = false;
+
+            if (task.Exception?.InnerException is GoogleSignIn.SignInException sie)
+            {
+                switch (sie.Status)
+                {
+                    case GoogleSignInStatusCode.Canceled:
+                    case GoogleSignInStatusCode.Interrupted:
+                        // Normális: nincs mentett fiók / megszakítva → interaktív bejelentkezés kell
+                        Debug.Log($"GoogleAuthManager: csendes bejelentkezés sikertelen ({sie.Status}) – interaktív bejelentkezés szükséges.");
+                        silentOnly = true;
+                        break;
+                    case GoogleSignInStatusCode.DeveloperError:
+                        error = "Google Sign-In konfiguráció hiba (DeveloperError).\nEllenőrizd: SHA-1 ujjlenyomat és Web Client ID a Firebase Console-ban.";
+                        break;
+                    case GoogleSignInStatusCode.NetworkError:
+                        error = "Hálózati hiba – ellenőrizd az internetkapcsolatot.";
+                        break;
+                    default:
+                        error = $"Google Sign-In hiba: {sie.Status}";
+                        break;
+                }
+            }
+            else if (task.Exception?.InnerException != null)
+            {
                 error = task.Exception.InnerException.Message;
+            }
+
+            if (silentOnly)
+            {
+                // Csendes bejelentkezés nem sikerült – nem hiba, csak várunk az interaktív loginra
+                IsSignedIn = false;
+                return;
+            }
+
             Debug.LogWarning($"GoogleAuthManager: bejelentkezési hiba – {error}");
             IsSignedIn = false;
             OnSignInFailed?.Invoke(error);
@@ -150,8 +183,8 @@ public class GoogleAuthManager : MonoBehaviour
 
         if (task.IsCanceled)
         {
+            Debug.Log("GoogleAuthManager: bejelentkezés törölve.");
             IsSignedIn = false;
-            OnSignInFailed?.Invoke("Bejelentkezés megszakítva.");
             return;
         }
 

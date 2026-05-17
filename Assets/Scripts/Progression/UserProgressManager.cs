@@ -59,6 +59,7 @@ public class UserProgressManager : MonoBehaviour
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
         Instance = this;
         DontDestroyOnLoad(gameObject);
+        Screen.sleepTimeout = SleepTimeout.NeverSleep;
         LoadAll();
     }
 
@@ -76,13 +77,17 @@ public class UserProgressManager : MonoBehaviour
     // ── Karakter létrehozás / választás ──────────────────────────────
 
     /// <summary>Új karakter létrehozása és aktiválása.</summary>
-    public void CreateCharacter(string name)
+    public void CreateCharacter(string name) => CreateCharacter(name, CharacterGameMode.PvP);
+
+    /// <summary>Uj karakter letrehozasa a valasztott jatekmoddal es aktivalasa.</summary>
+    public void CreateCharacter(string name, CharacterGameMode gameMode)
     {
         string id = Guid.NewGuid().ToString("N").Substring(0, 8);
         var ch = new UserProgressData
         {
             characterId          = id,
             characterName        = name.Trim(),
+            gameMode             = gameMode,
             createdAtUtc         = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             availableSkillPoints = 1
         };
@@ -281,7 +286,67 @@ public class UserProgressManager : MonoBehaviour
         }
 
         SaveRoster();
+        ServerSyncManager.GetOrCreate().DeleteCharacterOnServer(characterId);
         Debug.Log($"UserProgressManager: karakter törölve – {characterId}");
+    }
+
+    /// <summary>
+    /// Bejelentkezés után hívandó: összefésüli a szerveren tárolt karaktereket a lokálisakkal.
+    /// Mindkét irányban biztonságos: ha a szerveren újabb verzió van, az felülírja a lokálist;
+    /// ha a szerveren nincs meg egy karakter (pl. első bejelentkezés), a sync feltölti.
+    /// </summary>
+    public void MergeServerCharacters(List<UserProgressData> serverChars, string serverActiveId)
+    {
+        bool rosterChanged  = false;
+        bool anyNewImported = false;
+
+        foreach (var sc in serverChars)
+        {
+            bool existsLocally = _roster.characterIds.Contains(sc.characterId);
+
+            if (!existsLocally)
+            {
+                // Szerveren van, lokálisan nincs → importálás
+                _roster.characterIds.Add(sc.characterId);
+                EncryptedDataStore.Save("char_" + sc.characterId, JsonUtility.ToJson(sc));
+                rosterChanged  = true;
+                anyNewImported = true;
+                Debug.Log($"[UPM] Karakter importálva szerverről: {sc.characterName} (id: {sc.characterId})");
+            }
+            else
+            {
+                // Megvan lokálisan is → timestamp szerint döntünk, melyik az újabb
+                string localJson = EncryptedDataStore.Load("char_" + sc.characterId);
+                if (!string.IsNullOrEmpty(localJson))
+                {
+                    try
+                    {
+                        var local = JsonUtility.FromJson<UserProgressData>(localJson);
+                        if (sc.lastSavedUtc > local.lastSavedUtc)
+                        {
+                            EncryptedDataStore.Save("char_" + sc.characterId, JsonUtility.ToJson(sc));
+                            Debug.Log($"[UPM] Karakter frissítve szerverről (újabb): {sc.characterName}");
+                            if (sc.characterId == _roster.activeCharacterId)
+                                LoadActiveCharacter();
+                        }
+                    }
+                    catch { }
+                }
+            }
+        }
+
+        // Ha most kerültek be az első karakterek, aktív karakter beállítása
+        if (anyNewImported && string.IsNullOrEmpty(_roster.activeCharacterId))
+        {
+            string preferred = _roster.characterIds.Contains(serverActiveId)
+                ? serverActiveId
+                : _roster.characterIds[0];
+            _roster.activeCharacterId = preferred;
+            LoadActiveCharacter();
+        }
+
+        if (rosterChanged)
+            SaveRoster();
     }
 
     /// <summary>Törli az összes adatot (kijelentkezéskor).</summary>
@@ -383,6 +448,7 @@ public class UserProgressManager : MonoBehaviour
         }
         save.currentLevel++;
         SaveActiveCharacter();
+        ServerSyncManager.GetOrCreate().TriggerSync();
 
         Debug.Log($"Skill fejlesztve: {def?.displayName ?? nodeId} → {save.currentLevel}/{def?.maxLevel} (költség: {cost} pont)");
         OnSkillChanged?.Invoke(nodeId);
@@ -418,6 +484,8 @@ public class UserProgressManager : MonoBehaviour
         save.currentLevel--;
         _activeCharacter.availableSkillPoints += refund;
         SaveActiveCharacter();
+        ServerSyncManager.GetOrCreate().TriggerSync();
+
         Debug.Log($"Skill visszavonva: {def?.displayName ?? nodeId} → {save.currentLevel} (visszakapott: {refund} pont)");
         OnSkillChanged?.Invoke(nodeId);
         return true;

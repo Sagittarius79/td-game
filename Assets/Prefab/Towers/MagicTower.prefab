@@ -256,6 +256,7 @@ MonoBehaviour:
   armor: 1
   magicResist: 1
   isLvl2: 0
+  isTargetingTower: 0
   priceSkillTree: {fileID: 0}
   towerRenderer: {fileID: 0}
   rangeCircle: {fileID: 0}
@@ -603,6 +604,7 @@ MonoBehaviour:
   armor: 1
   magicResist: 1
   isLvl2: 0
+  isTargetingTower: 0
   priceSkillTree: {fileID: 11400000, guid: c8b7b31e229375b4b994430b03efad87, type: 2}
   towerRenderer: {fileID: 8906538239707145985}
   rangeCircle: {fileID: 2278186780095670801}

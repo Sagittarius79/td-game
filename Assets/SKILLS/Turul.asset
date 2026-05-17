@@ -1,0 +1,86 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54d5d29b10be90e40ba3386a48a10b03, type: 3}
+  m_Name: Turul
+  m_EditorClassIdentifier: Assembly-CSharp::SkillTreeDefinition
+  treeName: Turul
+  skillPointsPerLevel: 1
+  nodes:
+  - id: Turul_Unlock
+    displayName: Unlock Turul Tower
+    description: 'Now, you can Build Turul "Bosskiller" Tower '
+    icon: {fileID: 0}
+    maxLevel: 1
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites: []
+    effectType: 25
+    effectValuePerLevel: 1
+    fixedCostPerLevel: 0
+    minCharacterLevel: 10
+  - id: Turul_DMG_BOOST
+    displayName: Turul Tower DMG Boost
+    description: '+1 DMG for each Repeat Attack '
+    icon: {fileID: 0}
+    maxLevel: 50
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites:
+    - Turul_Unlock
+    effectType: 46
+    effectValuePerLevel: 1
+    fixedCostPerLevel: 0
+    minCharacterLevel: 10
+  - id: Turul_Repeat_Out_RANGE
+    displayName: Turul Tower Repeat Boost
+    description: '+1 Repeat Attack at Out Of Range / Skill '
+    icon: {fileID: 0}
+    maxLevel: 50
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites:
+    - Turul_DMG_BOOST
+    effectType: 47
+    effectValuePerLevel: 1
+    fixedCostPerLevel: 0
+    minCharacterLevel: 10
+  - id: Turul_Repeat_speed
+    displayName: Turul Repeat Attack Speed Boost
+    description: -0.2 Turning range / Skill
+    icon: {fileID: 0}
+    maxLevel: 5
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites:
+    - Turul_Repeat_Out_RANGE
+    effectType: 49
+    effectValuePerLevel: 0.2
+    fixedCostPerLevel: 5
+    minCharacterLevel: 10
+  - id: Turul_Count
+    displayName: Turul Tower Max Turul Count
+    description: '+1 Turul / Skill '
+    icon: {fileID: 0}
+    maxLevel: 5
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites:
+    - Turul_Repeat_speed
+    effectType: 48
+    effectValuePerLevel: 1
+    fixedCostPerLevel: 5
+    minCharacterLevel: 10

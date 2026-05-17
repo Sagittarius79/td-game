@@ -16,6 +16,7 @@ public class GameManager : MonoBehaviour
     private int currentWave = 0;
     private bool isGameOver = false;
     private bool isVictory = false;
+    private float _gameStartTime = 0f;
 
     // Töredék arany felhalmozó – PvP küldött szörny túlélési jutalom (0.1g/s)
     private float _pendingGold = 0f;
@@ -56,8 +57,12 @@ public class GameManager : MonoBehaviour
         Instance = this;
     }
 
+    /// <summary>A játék kezdete óta eltelt másodpercek (SSF statisztikához).</summary>
+    public int ElapsedPlaySeconds => Mathf.FloorToInt(Time.realtimeSinceStartup - _gameStartTime);
+
     void Start()
     {
+        _gameStartTime = Time.realtimeSinceStartup;
         SetGold(startingGold);
     }
 
@@ -126,7 +131,11 @@ public class GameManager : MonoBehaviour
         if (_survivalGoldTick < 1f) return;
         _survivalGoldTick -= 1f;
 
-        if (_mySentEnemiesAlive > 0)
+        // SSF módban nem jár survival gold – nincs ellenfél akinek a pályáján élnek a szörnyek
+        bool isSsf = UserProgressManager.Instance != null
+                     && UserProgressManager.Instance.HasCharacter
+                     && UserProgressManager.Instance.Data.IsSSF;
+        if (!isSsf && _mySentEnemiesAlive > 0)
             _survivalGoldPending += _mySentEnemiesAlive * 0.1f;
     }
 

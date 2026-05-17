@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 /// <summary>
 /// Hullám menedzser.
@@ -10,6 +11,9 @@ using System.Collections.Generic;
 public class WaveManager : MonoBehaviour
 {
     public static WaveManager Instance { get; private set; }
+
+    /// <summary>SSF Gold Pool által küldött szörnyek sender ID-ja.</summary>
+    public const ulong SSF_SENDER_ID = ulong.MaxValue - 1;
 
     [Header("Hullám beállítások")]
     public float waveInterval = 10f;            // fix 10 mp hullámok között
@@ -158,7 +162,7 @@ public class WaveManager : MonoBehaviour
             (spawnList[i], spawnList[j]) = (spawnList[j], spawnList[i]);
         }
 
-        // ── PvP csoportok – minden blokk külön, véletlenszerű pozícióba ──
+        // ── PvP / Gold Pool csoportok – minden blokk külön, véletlenszerű pozícióba ──
         // Az indexeket az EREDETI hullám mérete alapján generáljuk,
         // majd hátulról előre szúrjuk be, hogy a korábbi beszúrások
         // ne tolják el a később szúrt indexeket.
@@ -180,8 +184,21 @@ public class WaveManager : MonoBehaviour
                 spawnList.InsertRange(idx, group);
         }
 
+        // ── OnWaveStarted esemény a sor feldolgozása UTÁN tüzel ──────────────────
+        // Így a WaveManagerSSF által generált Gold Pool szörnyek a KÖVETKEZŐ
+        // hullám queue-jába kerülnek (nem az aktuálisba), és a WavePreviewUI
+        // helyesen jeleníti meg őket "következő hullám" extraként.
         OnWaveStarted?.Invoke(currentWave);
-        Debug.Log($"Hullám {currentWave} indul – összesen {spawnList.Count} szörny (PvP csoportok vegyítve)");
+
+        int waveEnemyCount     = spawnList.Count(e => e.senderId == ulong.MaxValue);
+        int goldPoolEnemyCount = spawnList.Count(e => e.senderId == SSF_SENDER_ID);
+        int pvpEnemyCount      = spawnList.Count - waveEnemyCount - goldPoolEnemyCount;
+
+        string log = $"Hullám {currentWave} indul – összesen {spawnList.Count} szörny" +
+                     $" | Wave: {waveEnemyCount}" +
+                     $" | Gold Pool: {goldPoolEnemyCount}";
+        if (pvpEnemyCount > 0) log += $" | PvP küldött: {pvpEnemyCount}";
+        Debug.Log(log);
 
         StartCoroutine(SpawnEnemies(spawnList));
     }
@@ -198,6 +215,21 @@ public class WaveManager : MonoBehaviour
             yield return new WaitForSeconds(Random.Range(minD, maxD));
             if (prefab == null) { Debug.LogWarning("WaveManager: null prefab, kihagyva."); continue; }
             SpawnSingleEnemy(prefab, spawnWorld, senderId);
+        }
+    }
+
+    /// <summary>Külső kód (pl. SplitOnDeath) hívhatja – az aliveEnemies számláló helyesen frissül.</summary>
+    public void SpawnEnemyAt(GameObject prefab, Vector3 position, int startWaypointIndex = -1)
+    {
+        GameObject enemyGO = Instantiate(prefab, position, Quaternion.identity);
+        var enemy = enemyGO.GetComponent<Enemy>();
+        if (enemy != null)
+        {
+            if (startWaypointIndex > 0)
+                enemy.overrideStartWaypointIndex = startWaypointIndex;
+            enemy.OnDied          += OnEnemyDied;
+            enemy.OnReachedCastle += OnEnemyReachedCastle;
+            aliveEnemies++;
         }
     }
 
@@ -257,6 +289,10 @@ public class WaveManager : MonoBehaviour
             GameManager.Instance.AddGold(GameManager.Instance.goldPerKill);
             GameManager.Instance.OnEnemyKilled?.Invoke();
         }
+
+        // SSF Gold Pool ellenség: csak ezek ölése ad XP-t
+        if (enemy.senderClientId == SSF_SENDER_ID)
+            XPManager.Instance?.AddSSFGoldPoolXP(enemy.maxHealth);
 
         EnemyFinished();
     }

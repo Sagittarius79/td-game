@@ -50,6 +50,23 @@ public class MatchmakingClient : MonoBehaviour
     /// </summary>
     public event Action OnSessionReady;
 
+    /// <summary>Utoljára lekért ranglistás helyezés (0 = még nem ismert).</summary>
+    public int CachedRank { get; private set; } = 0;
+
+    /// <summary>Utoljára lekért SSF ranglistás helyezés (0 = még nem ismert).</summary>
+    public int CachedSSFRank { get; private set; } = 0;
+
+    /// <summary>
+    /// LAN kliensnek a Caddy belső LAN IP-je TCP connect célpontként
+    /// (a server_host SNI hosztnév DNS-feloldása NAT loopback miatt nem működne).
+    /// Üres string → a kliens a server_host-ot oldja fel DNS-en (publikus út).
+    /// A legutóbbi /matchmaking/status, /match/create vagy /match/join hívás állítja be.
+    /// </summary>
+    public string LastConnectOverrideIp { get; private set; } = "";
+
+    /// <summary>Friss ranglistás helyezés érkezett a szervertől.</summary>
+    public event Action<int> OnRankRefreshed;
+
     // 401 esetén újra-bejelentkezéshez tárolt adatok
     private string _savedUserId;
     private string _savedDisplayName;
@@ -156,6 +173,7 @@ public class MatchmakingClient : MonoBehaviour
                 Debug.Log($"[MMC] Bejelentkezve: {DisplayName} ({PlayerId})");
                 onSuccess?.Invoke(resp.display_name, resp.player_id);
                 OnSessionReady?.Invoke();
+                RefreshRank();
             }
         ));
     }
@@ -186,6 +204,7 @@ public class MatchmakingClient : MonoBehaviour
                 Debug.Log($"[MMC] Dev bejelentkezés OK: {DisplayName}");
                 onSuccess?.Invoke();
                 OnSessionReady?.Invoke();
+                RefreshRank();
             }
         ));
     }
@@ -230,7 +249,9 @@ public class MatchmakingClient : MonoBehaviour
                 if (err != null) { onError?.Invoke(err); return; }
                 var resp = JsonUtility.FromJson<JoinMatchResponseJson>(json);
                 CurrentMatchId = resp.match_id;
-                Debug.Log($"[MMC] Meccs létrehozva: {resp.match_id} | {resp.server_host}:{resp.server_port}");
+                LastConnectOverrideIp = resp.server_connect_ip ?? "";
+                Debug.Log($"[MMC] Meccs létrehozva: {resp.match_id} | {resp.server_host}:{resp.server_port}" +
+                          (string.IsNullOrEmpty(LastConnectOverrideIp) ? "" : $" (LAN connect={LastConnectOverrideIp})"));
                 onSuccess?.Invoke(resp.server_host, (ushort)resp.server_port, resp.match_id);
             }
         ));
@@ -253,7 +274,9 @@ public class MatchmakingClient : MonoBehaviour
                 if (err != null) { onError?.Invoke(err); return; }
                 var resp = JsonUtility.FromJson<JoinMatchResponseJson>(json);
                 CurrentMatchId = resp.match_id;
-                Debug.Log($"[MMC] Csatlakozva: {resp.match_id} | {resp.server_host}:{resp.server_port}");
+                LastConnectOverrideIp = resp.server_connect_ip ?? "";
+                Debug.Log($"[MMC] Csatlakozva: {resp.match_id} | {resp.server_host}:{resp.server_port}" +
+                          (string.IsNullOrEmpty(LastConnectOverrideIp) ? "" : $" (LAN connect={LastConnectOverrideIp})"));
                 onSuccess?.Invoke(resp.server_host, (ushort)resp.server_port, resp.match_id);
             }
         ));
@@ -307,33 +330,96 @@ public class MatchmakingClient : MonoBehaviour
 
     /// <summary>
     /// Lekérdezi az Auto Lobby státuszát.
-    /// onMatched:  megtalálta a meccset → (serverHost, serverPort, matchId, playerCount)
-    /// onWaiting:  még vár             → (countdown másodpercek, playerCount)
+    /// onMatched:  megtalálta a meccset → (serverHost, serverPort, matchId, playerCount, playerNames, playerElos)
+    /// onWaiting:  még vár             → (countdown másodpercek, playerCount, playerNames, playerElos)
     /// </summary>
     public void PollMatchmakingStatus(
-        Action<string, ushort, string, int, string[]> onMatched,
-        Action<int, int, string[]> onWaiting,
+        Action<string, ushort, string, int, string[], int[]> onMatched,
+        Action<int, int, string[], int[]> onWaiting,
         Action<string> onError)
     {
+        // WebGL böngészőből ws:// LAN IP nem elérhető (mixed content + private IP tiltás)
+        // → platform=webgl paraméter jelzi a szervernek, hogy DuckDNS WSS proxy-t adjon vissza
+#if UNITY_WEBGL && !UNITY_EDITOR
+        string statusUrl = $"{apiBaseUrl}/matchmaking/status?platform=webgl";
+#else
+        string statusUrl = $"{apiBaseUrl}/matchmaking/status";
+#endif
+
         StartCoroutine(GetCoroutine(
-            url:    $"{apiBaseUrl}/matchmaking/status",
+            url:    statusUrl,
             onDone: (json, err) =>
             {
                 if (err != null) { onError?.Invoke(err); return; }
 
-                var resp = JsonUtility.FromJson<MatchmakingStatusJson>(json);
-                var names = resp.player_names ?? Array.Empty<string>();
+                var resp  = JsonUtility.FromJson<MatchmakingStatusJson>(json);
+                var names = resp.player_names  ?? Array.Empty<string>();
+                var ranks = resp.player_ranks  ?? Array.Empty<int>();
                 if (resp.status == "matched")
                 {
                     CurrentMatchId = resp.match_id;
-                    onMatched?.Invoke(resp.server_host, (ushort)resp.server_port, resp.match_id, resp.player_count, names);
+                    LastConnectOverrideIp = resp.server_connect_ip ?? "";
+                    onMatched?.Invoke(resp.server_host, (ushort)resp.server_port, resp.match_id, resp.player_count, names, ranks);
                 }
                 else
                 {
-                    onWaiting?.Invoke(resp.countdown, resp.player_count, names);
+                    onWaiting?.Invoke(resp.countdown, resp.player_count, names, ranks);
                 }
             }
         ));
+    }
+
+    /// <summary>
+    /// Lekéri a ranglistás helyezést, cache-eli és tüzeli az OnRankRefreshed eventet.
+    /// Bejelentkezés után és meccs végén automatikusan hívódik.
+    /// </summary>
+    public void RefreshRank()
+    {
+        if (string.IsNullOrEmpty(SessionToken)) return;
+        StartCoroutine(GetCoroutine($"{apiBaseUrl}/leaderboard/my_rank", (json, err) =>
+        {
+            if (err != null) { Debug.LogWarning($"[MMC] Rank lekérés hiba: {err}"); return; }
+            try
+            {
+                var resp = JsonUtility.FromJson<MyRankResponseJson>(json);
+                CachedRank = resp.rank;
+                OnRankRefreshed?.Invoke(CachedRank);
+            }
+            catch (Exception e) { Debug.LogWarning($"[MMC] Rank parse hiba: {e.Message}"); }
+        }));
+    }
+
+    /// <summary>Ranglistás helyezés lekérése egyedi callbackkel (pl. CharacterEntryUI).</summary>
+    public void FetchMyRank(Action<int> onSuccess, Action<string> onError)
+    {
+        StartCoroutine(GetCoroutine($"{apiBaseUrl}/leaderboard/my_rank", (json, err) =>
+        {
+            if (err != null) { onError?.Invoke(err); return; }
+            try
+            {
+                var resp = JsonUtility.FromJson<MyRankResponseJson>(json);
+                CachedRank = resp.rank;
+                OnRankRefreshed?.Invoke(CachedRank);
+                onSuccess?.Invoke(resp.rank);
+            }
+            catch (Exception e) { onError?.Invoke(e.Message); }
+        }));
+    }
+
+    /// <summary>SSF ranglistás helyezés lekérése egyedi callbackkel (pl. CharacterEntryUI SSF kártyához).</summary>
+    public void FetchMySSFRank(Action<int> onSuccess, Action<string> onError)
+    {
+        StartCoroutine(GetCoroutine($"{apiBaseUrl}/leaderboard/my_ssf_rank", (json, err) =>
+        {
+            if (err != null) { onError?.Invoke(err); return; }
+            try
+            {
+                var resp = JsonUtility.FromJson<MyRankResponseJson>(json);
+                CachedSSFRank = resp.rank;
+                onSuccess?.Invoke(resp.rank);
+            }
+            catch (Exception e) { onError?.Invoke(e.Message); }
+        }));
     }
 
     /// <summary>Kilép a matchmaking sorból (pl. mégse gomb).</summary>
@@ -517,11 +603,17 @@ public class MatchmakingClient : MonoBehaviour
         public string match_id;
         public string server_host;
         public int    server_port;
+        public string server_connect_ip;   // LAN kliensnek a Caddy LAN IP-je (NAT loopback elkerülés); üres = DNS feloldás
     }
 
     [Serializable] class ErrorJson
     {
         public string detail;
+    }
+
+    [Serializable] class MyRankResponseJson
+    {
+        public int rank;
     }
 
     [Serializable] class MatchmakingStatusJson
@@ -532,6 +624,8 @@ public class MatchmakingClient : MonoBehaviour
         public string match_id;
         public string server_host;
         public int    server_port;
+        public string server_connect_ip;   // LAN kliensnek a Caddy LAN IP-je (NAT loopback elkerülés); üres = DNS feloldás
         public string[] player_names;
+        public int[]    player_ranks;
     }
 }

@@ -21,6 +21,13 @@ public class MainMenuUI : MonoBehaviour
 
     [Header("Navigáció")]
     public Button characterSelectButton;
+    public Button soloButton;
+    public Button pvpButton;
+    [Tooltip("Ha a PvP gombon kívül egy teljes konténert kell elrejteni SSF karakterhez.")]
+    public GameObject pvpButtonRoot;
+
+    [Header("Tutorial")]
+    public Button tooltipsButton;
 
     [Header("Google fiók")]
     [Tooltip("Kijelentkezés gomb – csak bejelentkezett állapotban interakcióképes")]
@@ -36,6 +43,13 @@ public class MainMenuUI : MonoBehaviour
     {
         if (characterSelectButton != null)
             characterSelectButton.onClick.AddListener(OnCharacterSelectPressed);
+        if (soloButton != null)
+            soloButton.onClick.AddListener(OnSoloPressed);
+        if (pvpButton != null)
+            pvpButton.onClick.AddListener(OnPvPPressed);
+
+        if (tooltipsButton != null)
+            tooltipsButton.onClick.AddListener(OnTooltipsPressed);
 
         if (logoutButton != null)
             logoutButton.onClick.AddListener(OnLogoutPressed);
@@ -57,6 +71,10 @@ public class MainMenuUI : MonoBehaviour
 
         // Karakter kártya megjelenítése
         RefreshCharacterCard();
+        RefreshModeButtons();
+
+        // Karakteradatok feltöltése a szerverre (visszatérés meccsből is lefut)
+        ServerSyncManager.GetOrCreate().TriggerSync();
     }
 
     void OnDestroy()
@@ -88,6 +106,7 @@ public class MainMenuUI : MonoBehaviour
         var go = Instantiate(characterEntryPrefab, characterCardParent);
         _activeCard = go.GetComponent<CharacterEntryUI>();
         _activeCard?.SetupDisplay(mgr.Data);
+        RefreshModeButtons();
     }
 
     public void SetCharacterCardVisible(bool visible)
@@ -108,16 +127,52 @@ public class MainMenuUI : MonoBehaviour
         CharacterSelectUI.Instance.Show();
     }
 
+    public void OnTooltipsPressed()
+    {
+        TutorialCardsUI.Instance?.Show(() => { }, auto: false);
+    }
+
     public void OnSoloPressed()
     {
+        if (UserProgressManager.Instance == null || !UserProgressManager.Instance.HasCharacter)
+            return;
+
         XPManager.Instance?.SetMatchType(isPvP: false);
         SceneManager.LoadScene(soloSceneName);
     }
 
     public void OnPvPPressed()
     {
+        var mgr = UserProgressManager.Instance;
+        if (mgr == null || !mgr.HasCharacter)
+            return;
+
+        var data = mgr.Data;
+        if (data.IsSSF)
+            return;
+
         XPManager.Instance?.SetMatchType(isPvP: true);
         SceneManager.LoadScene(pvpSceneName);
+    }
+
+    void RefreshModeButtons()
+    {
+        var mgr = UserProgressManager.Instance;
+        bool hasCharacter = mgr != null && mgr.HasCharacter;
+        bool isSsf = hasCharacter && mgr.Data.IsSSF;
+
+        if (soloButton != null)
+            soloButton.interactable = hasCharacter;
+
+        if (pvpButton != null)
+        {
+            pvpButton.interactable = hasCharacter && !isSsf;
+            if (pvpButtonRoot == null)
+                pvpButton.gameObject.SetActive(!isSsf);
+        }
+
+        if (pvpButtonRoot != null)
+            pvpButtonRoot.SetActive(!isSsf);
     }
 
     // ── Esemény kezelők ───────────────────────────────────────────
@@ -126,12 +181,14 @@ public class MainMenuUI : MonoBehaviour
     {
         RefreshCharacterCard();
         RefreshLoginUI();
+        RefreshModeButtons();
     }
 
     void OnSignedOut()
     {
         if (_activeCard != null) Destroy(_activeCard.gameObject);
         RefreshLoginUI();
+        RefreshModeButtons();
         LoginUI.Instance?.Show();
     }
 

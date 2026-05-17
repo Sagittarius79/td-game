@@ -8,10 +8,18 @@ using System.Collections.Generic;
 /// Nem MonoBehaviour, csak adatmodell (JsonUtility-vel szerializálható).
 /// </summary>
 [Serializable]
+public enum CharacterGameMode
+{
+    PvP,
+    SSF
+}
+
+[Serializable]
 public class UserProgressData
 {
     public string characterId   = "";           // GUID rövidítve (8 hex karakter)
     public string characterName = "";           // játékoson belüli egyedi név
+    public CharacterGameMode gameMode = CharacterGameMode.PvP;
 
     public long totalXP      = 0;
     public int  totalWins    = 0;
@@ -23,6 +31,10 @@ public class UserProgressData
     public int              availableSkillPoints = 0;
     public List<SkillSaveData> skillLevels      = new List<SkillSaveData>();
 
+    // ── SSF statisztikák ─────────────────────────────────────────────
+    public int maxWave          = 0;   // SSF: valaha elért legtöbb hullám
+    public int totalPlaySeconds = 0;   // SSF: összes játékban töltött idő (mp)
+
     public long   createdAtUtc = 0;   // Unix timestamp (UTC), létrehozáskor
     public long   lastSavedUtc = 0;   // Unix timestamp (UTC), utolsó mentéskor
     public string saveVersion  = "3";
@@ -30,6 +42,8 @@ public class UserProgressData
     // ── Számított tulajdonságok ──────────────────────────────────────
 
     public bool HasCharacter => !string.IsNullOrEmpty(characterName);
+    public bool IsSSF => gameMode == CharacterGameMode.SSF;
+    public bool IsPvPCharacter => gameMode == CharacterGameMode.PvP;
 
     public int Level => UserProgressManager.CalculateLevel(totalXP);
 

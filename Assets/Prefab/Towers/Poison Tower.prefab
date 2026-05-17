@@ -575,7 +575,7 @@ MonoBehaviour:
   targetingMode: 4
   projectilePrefab: {fileID: 351412378503182248, guid: 18e29df512531de4a94555a1898675a8, type: 3}
   shootPoint: {fileID: 9086629066240886170}
-  maxHealth: 50
+  maxHealth: 100
   armor: 0
   magicResist: 0
   isLvl2: 0
