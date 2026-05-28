@@ -30,7 +30,8 @@ public enum TargetingMode
     LegkozelebbiSzorny,     // legközelebb van a toronyhoz
     LegtavolabbiSzorny,     // legtávolabb van a toronyhoz
     Leggyorsabb,            // legnagyobb moveSpeed
-    Leglassabb              // legkisebb moveSpeed
+    Leglassabb,             // legkisebb moveSpeed
+    Sebezheto               // előnyben részesíti azt, aki érzékeny a torony lövedékének sebzéstípusára
 }
 
 public abstract class Tower : MonoBehaviour
@@ -124,6 +125,22 @@ public abstract class Tower : MonoBehaviour
     // ── Statikus lista: összes torony (lekérdezéshez) ─────
     private static List<Tower> allTowers = new List<Tower>();
     public static IReadOnlyList<Tower> AllTowers => allTowers;
+
+    private readonly Dictionary<GameObject, int> _runeStacks = new Dictionary<GameObject, int>();
+
+    public void AddRuneStack(GameObject runePrefab)
+    {
+        if (runePrefab == null) return;
+        _runeStacks.TryGetValue(runePrefab, out int current);
+        _runeStacks[runePrefab] = current + 1;
+    }
+
+    public int GetRuneStack(GameObject runePrefab)
+    {
+        if (runePrefab == null) return 0;
+        _runeStacks.TryGetValue(runePrefab, out int count);
+        return count;
+    }
 
     public static bool IsTargetingTowerBuilt
     {
@@ -228,6 +245,7 @@ public abstract class Tower : MonoBehaviour
                     Enemy.ClearFocusTarget();
             }
             GridManager.Instance?.PlaceRubble(gridCell);
+            NetworkGameManager.Instance?.BroadcastTowerDestroyed(towerName);
             Destroy(gameObject);
         }
     }
@@ -296,7 +314,7 @@ public abstract class Tower : MonoBehaviour
 
     protected virtual void Update()
     {
-        if (GameManager.Instance.IsGameOver) return;
+        if (GameManager.Instance == null || GameManager.Instance.IsGameOver) return;
 
         // Célpont frissítése – ha nincs, meghalt, vagy kiment a hatótávból
         if (currentTarget == null || currentTarget.IsDead || !IsInRange(currentTarget))
@@ -384,6 +402,48 @@ public abstract class Tower : MonoBehaviour
                 return focus;
         }
 
+        // Sebezhető: előnyben részesíti azt, aki érzékeny a lövedék sebzéstípusára
+        if (targetingMode == TargetingMode.Sebezheto)
+        {
+            // Összegyűjtjük az összes sebzéstípust amit ez a torony okozhat
+            var relevantTypes = new System.Collections.Generic.HashSet<DamageType>();
+            relevantTypes.Add(damageType);
+
+            if (projectilePrefab != null)
+            {
+                var projComp = projectilePrefab.GetComponent<Projectile>();
+                if (projComp != null)
+                    relevantTypes.Add(projComp.damageType);
+
+                var af = projectilePrefab.GetComponent<altalanos_fejlesztesek>();
+                if (af != null)
+                {
+                    if (af.gyujtas)  relevantTypes.Add(DamageType.Fire);
+                    if (af.mereg)    relevantTypes.Add(DamageType.Poison);
+                }
+            }
+
+            Enemy fallback = null;
+            foreach (var enemy in Enemy.AllEnemies)
+            {
+                if (enemy.IsDead) continue;
+                if (enemy.isFlying && !projCanHitFlying) continue;
+                if (Vector3.Distance(transform.position, enemy.transform.position) > rangeWorld) continue;
+
+                if (fallback == null) fallback = enemy;
+
+                if (enemy.vulnerabilities != null)
+                {
+                    foreach (var v in enemy.vulnerabilities)
+                    {
+                        if (relevantTypes.Contains(v.damageType) && v.multiplier > 1f)
+                            return enemy;   // érzékeny → azonnal ez legyen a célpont
+                    }
+                }
+            }
+            return fallback;   // nincs érzékeny → első hatótávon belüli ellenség
+        }
+
         // Alapértelmezett: az első hatótávon belüli élő ellenség
         if (targetingMode == TargetingMode.Alapertelmezett)
         {
@@ -466,7 +526,7 @@ public abstract class Tower : MonoBehaviour
 
         var af = proj.GetComponent<altalanos_fejlesztesek>();
         if (af != null)
-            af.SetTowerData(transform.position, GetEffectiveRange());
+            af.SetTowerData(transform.position, GetEffectiveRange(), this);
     }
 
     // ══════════════════════════════════════════════════════

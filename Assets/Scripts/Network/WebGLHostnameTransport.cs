@@ -3,6 +3,7 @@ using Unity.Collections;
 using Unity.Netcode.Transports.UTP;
 using Unity.Networking.Transport;
 using UnityEngine;
+using UnityEngine.Scripting;
 
 /// <summary>
 /// WebGL-kompatibilis UnityTransport subclass — hosztnév-csatlakozást támogat.
@@ -39,6 +40,7 @@ public class WebGLHostnameTransport : UnityTransport
     // Reflection cache az UnityTransport private m_Driver mezőjéhez.
     private static FieldInfo s_DriverField;
 
+    [Preserve]
     protected override NetworkConnection Connect(NetworkEndpoint serverEndpoint)
     {
 #if UNITY_WEBGL && !UNITY_EDITOR

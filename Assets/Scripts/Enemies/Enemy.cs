@@ -1,6 +1,7 @@
 using UnityEngine;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 
 /// <summary>
 /// ═══════════════════════════════════════════════════════
@@ -32,6 +33,12 @@ public class Enemy : MonoBehaviour
     public float moveSpeed = 0.156f;
     public int damage = 0;
 
+    /// <summary>
+    /// Külső rendszerek (pl. RainEventManager) által állítható sebességszorzó.
+    /// 1.0 = normál, 1.2 = 20%-kal gyorsabb. Mindig visszaállítandó 1.0-ra az event végén.
+    /// </summary>
+    [HideInInspector] public float externalSpeedMultiplier = 1f;
+
     [Header("Immunitás")]
     [Tooltip("Ezekre a lövedék tagekre immunis a szörny (pl. Arrow, Magic, Poison)")]
     public List<string> immuneToProjectileTags = new List<string>();
@@ -43,6 +50,10 @@ public class Enemy : MonoBehaviour
     public float magicResist = 0f;
     [Tooltip("Ha be van pipálva, a lény minden sebzésből csak a felét kapja meg (armor/magicResist után alkalmazva).")]
     public bool halfDamage = false;
+
+    [Header("Sebezhetőség")]
+    [Tooltip("Ha egy sebzés típus szerepel itt, az adott típusú sebzés meg lesz szorozva a megadott értékkel. Pl. Fire × 2.0 = kétszeres tűzsebzés.")]
+    public List<DamageVulnerability> vulnerabilities = new List<DamageVulnerability>();
 
     [Header("Vizuális")]
     public SpriteRenderer spriteRenderer;
@@ -71,14 +82,18 @@ public class Enemy : MonoBehaviour
     [Tooltip("A FloatingDamageText prefab – ha üres, nem jelenik meg sebzés szám")]
     public GameObject floatingDamageTextPrefab;
     public UnityEngine.UI.Image healthBarFill;
+    [Tooltip("TextMeshPro szöveg a HP kijelzéséhez (opcionális)")]
+    public TextMeshPro hpText;
 
     [Header("Poison VFX")]
+    public GameObject poisonVfxPrefab;
     [Tooltip("A méreg VFX pozíció eltolása a sprite tetejéhez képest")]
     public Vector3 poisonVfxOffset = Vector3.zero;
     [Tooltip("A méreg VFX méretének szorzója (1 = sprite szélességéhez igazodik)")]
     public float poisonVfxScale = 1f;
 
     [Header("Fire VFX")]
+    public GameObject fireVfxPrefab;
     [Tooltip("A tűz VFX pozíció eltolása a sprite tetejéhez képest")]
     public Vector3 fireVfxOffset = Vector3.zero;
     [Tooltip("A tűz VFX méretének szorzója (1 = sprite szélességéhez igazodik)")]
@@ -164,6 +179,12 @@ public class Enemy : MonoBehaviour
 
     /// <summary>SplitOnDeath állítja be – az anya szörny waypoint indexéről indul.</summary>
     [HideInInspector] public int overrideStartWaypointIndex = -1;
+
+    /// <summary>
+    /// Ha true, a szörny nem mozog és nem kerül pályakezdőpontra (pl. PhoenixEgg).
+    /// Beállítandó az Instantiate() után, Start() lefutása előtt.
+    /// </summary>
+    [HideInInspector] public bool isStationary = false;
     protected bool isDead = false;
     private bool reachedCastle = false;
     private Vector3[] worldWaypoints;   // az út waypoint-jai world koordinátában (eltolással)
@@ -189,6 +210,14 @@ public class Enemy : MonoBehaviour
     /// WaveManager állítja be spawnoláskor.
     /// </summary>
     public ulong senderClientId = ulong.MaxValue;
+
+    /// <summary>Szörny típus neve (prefab neve) – WaveManager állítja be spawnoláskor, kill statisztikához.</summary>
+    public string enemyTypeName = "";
+
+    /// <summary>Ha false, a halál nem számít bele a kill statisztikába (pl. SplitOnDeath gyerekek).</summary>
+    [HideInInspector] public bool countAsKill = true;
+    /// <summary>Ha false, beérve a kastélyhoz nem sebzi azt (pl. GoblinEvent).</summary>
+    [HideInInspector] public bool dealsCastleDamage = true;
     private float _spawnTime;
 
     // ══════════════════════════════════════════════════════
@@ -205,6 +234,32 @@ public class Enemy : MonoBehaviour
     {
         if (spriteRenderer != null)
             _originalColor = spriteRenderer.color;
+
+        // ── Stacionárius mód (pl. PhoenixEgg) ────────────────────────
+        if (isStationary)
+        {
+            if (healthBarRoot != null)
+            {
+                healthBarRoot.SetActive(true);
+                _spawnDistToCastle = Castle.Instance != null
+                    ? Vector3.Distance(transform.position, Castle.Instance.transform.position)
+                    : 1f;
+                if (healthBarFill != null && healthBarFill.transform.parent != null)
+                {
+                    _hpBarContainer     = healthBarFill.transform.parent;
+                    _hpBarOriginalScale = _hpBarContainer.localScale;
+                }
+                else
+                {
+                    _hpBarContainer     = healthBarRoot.transform;
+                    _hpBarOriginalScale = healthBarRoot.transform.localScale;
+                }
+            }
+            if (hpText != null) hpText.gameObject.SetActive(false);
+            UpdateSortingOrder();
+            return;
+        }
+        // ─────────────────────────────────────────────────────────────
 
         if (GridManager.Instance == null)
         {
@@ -275,6 +330,9 @@ public class Enemy : MonoBehaviour
                 _hpBarOriginalScale = healthBarRoot.transform.localScale;
             }
         }
+
+        if (hpText != null)
+            hpText.gameObject.SetActive(false);
     }
 
     // ══════════════════════════════════════════════════════
@@ -284,6 +342,7 @@ public class Enemy : MonoBehaviour
     void Update()
     {
         if (isDead || reachedCastle) return;
+        if (isStationary) { UpdateSortingOrder(); return; }
         if (worldWaypoints == null || worldWaypoints.Length == 0) return;
 
         if (_stunTimer > 0f)
@@ -308,6 +367,7 @@ public class Enemy : MonoBehaviour
 
         MoveAlongPath();
         UpdateHealthBarScale();
+        UpdateHpTextVisibility();
         UpdateSortingOrder();
     }
 
@@ -387,7 +447,7 @@ public class Enemy : MonoBehaviour
 
         Vector3 target = worldWaypoints[currentWaypointIndex];
         Vector3 dir    = target - transform.position;
-        float step     = moveSpeed * Time.deltaTime;
+        float step     = moveSpeed * externalSpeedMultiplier * Time.deltaTime;
 
         // Sprite tükrözés – folyamatosan frissül a jelenlegi célirány alapján
         if (spriteRenderer != null && dir.magnitude > 0.01f)
@@ -439,18 +499,43 @@ public class Enemy : MonoBehaviour
         }
     }
 
+    /// <summary>HP skálázás spawn után – maxHealth és currentHealth együtt változik.</summary>
+    public void ScaleHealth(float multiplier)
+    {
+        maxHealth     *= multiplier;
+        currentHealth  = maxHealth;
+        UpdateHealthBar();
+    }
+
     public bool TakeDamage(float amount, DamageType damageType = DamageType.Physical, bool isCrit = false)
     {
         if (isDead || reachedCastle) return false;
 
-
         // Ellenállás levonása a bejövő sebzésből
         // Fizikai: minimum 1 – az armor sosem blokkol teljesen
         // Mágikus / Tűz: teljes blokkolás lehetséges (0 damage)
-        float resistance;
+        float resistance = 0f;
         float actualDamage;
 
-        if (damageType == DamageType.Physical)
+        // Sebezhetőség: ha érzékeny erre a típusra, resistance nem számít – csak a szorzó
+        float vulnerabilityMultiplier = 0f;
+        if (vulnerabilities != null)
+        {
+            foreach (var v in vulnerabilities)
+            {
+                if (v.damageType == damageType && v.multiplier > 0f)
+                {
+                    vulnerabilityMultiplier = v.multiplier;
+                    break;
+                }
+            }
+        }
+
+        if (vulnerabilityMultiplier > 0f)
+        {
+            actualDamage = amount * vulnerabilityMultiplier;
+        }
+        else if (damageType == DamageType.Physical)
         {
             resistance   = Mathf.CeilToInt(armor);
             actualDamage = Mathf.Max(1f, amount - resistance);
@@ -458,7 +543,7 @@ public class Enemy : MonoBehaviour
         else
         {
             resistance   = magicResist;
-            actualDamage = Mathf.Max(0f, amount - resistance);
+            actualDamage = Mathf.Max(1f, amount - resistance);
         }
 
         if (halfDamage)
@@ -502,9 +587,31 @@ public class Enemy : MonoBehaviour
 
         float currentDist = Vector3.Distance(transform.position, Castle.Instance.transform.position);
         float progress = 1f - Mathf.Clamp01(currentDist / _spawnDistToCastle);
-        float t        = Mathf.Clamp01((progress - 0.5f) / 0.5f);
-        float scale    = Mathf.Lerp(1f, 2f, t);
+        float t        = Mathf.Clamp01((progress - 0.8f) / 0.2f);
+        float scale    = Mathf.Lerp(1f, 10f, t);
         _hpBarContainer.localScale = _hpBarOriginalScale * scale;
+
+    }
+
+    void UpdateHpTextVisibility()
+    {
+        if (hpText == null) return;
+        if (Castle.Instance == null || _spawnDistToCastle <= 0f)
+        {
+            bool focusOnly = _focusTarget == this;
+            if (hpText.gameObject.activeSelf != focusOnly)
+                hpText.gameObject.SetActive(focusOnly);
+            if (focusOnly)
+                hpText.text = Mathf.CeilToInt(currentHealth).ToString();
+            return;
+        }
+        float dist     = Vector3.Distance(transform.position, Castle.Instance.transform.position);
+        float progress = 1f - Mathf.Clamp01(dist / _spawnDistToCastle);
+        bool show      = progress >= 0.9f || _focusTarget == this;
+        if (hpText.gameObject.activeSelf != show)
+            hpText.gameObject.SetActive(show);
+        if (show)
+            hpText.text = Mathf.CeilToInt(currentHealth).ToString();
     }
 
     // ══════════════════════════════════════════════════════
@@ -619,10 +726,12 @@ public class Enemy : MonoBehaviour
         if (_focusTarget == this)
             ClearFocusTarget();
 
-        // Maradék HP-val arányos sebzés a kastélynak
-        int dmg = Mathf.CeilToInt(currentHealth);
-        if (Castle.Instance != null)
-            Castle.Instance.TakeDamage(dmg);
+        if (dealsCastleDamage)
+        {
+            int dmg = Mathf.CeilToInt(currentHealth);
+            if (Castle.Instance != null)
+                Castle.Instance.TakeDamage(dmg);
+        }
 
         OnReachedCastle?.Invoke(this);
         Destroy(gameObject);
@@ -661,6 +770,25 @@ public class Enemy : MonoBehaviour
     }
 
     /// <summary>
+    /// Megfelezi az ellenfél aktuális HP-ját (charm effekt – nem öli meg, minimum 1 marad).
+    /// </summary>
+    public void HalveHealth()
+    {
+        if (isDead || reachedCastle) return;
+        currentHealth = Mathf.Max(1f, currentHealth * 0.5f);
+        UpdateHealthBar();
+    }
+
+    /// <summary>Azonnal megöli az ellenfelet (charm effekt).</summary>
+    public void InstantKill()
+    {
+        if (isDead || reachedCastle) return;
+        currentHealth = 0f;
+        UpdateHealthBar();
+        Die();
+    }
+
+    /// <summary>
     /// A kastályig hátralévő út hossza world unitban.
     /// Tornyok ezzel döntik el melyik ellenség a legveszélyesebb célpont.
     /// </summary>
@@ -668,6 +796,10 @@ public class Enemy : MonoBehaviour
     {
         get
         {
+            if (isStationary)
+                return Castle.Instance != null
+                    ? Vector3.Distance(transform.position, Castle.Instance.transform.position)
+                    : float.MaxValue;
             if (worldWaypoints == null) return 0f;
             float dist = Vector3.Distance(transform.position,
                 currentWaypointIndex < worldWaypoints.Length

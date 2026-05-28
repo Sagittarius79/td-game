@@ -334,8 +334,8 @@ public class MatchmakingClient : MonoBehaviour
     /// onWaiting:  még vár             → (countdown másodpercek, playerCount, playerNames, playerElos)
     /// </summary>
     public void PollMatchmakingStatus(
-        Action<string, ushort, string, int, string[], int[]> onMatched,
-        Action<int, int, string[], int[]> onWaiting,
+        Action<string, ushort, string, int, string[], int[], int[], int> onMatched,
+        Action<int, int, string[], int[], int[]> onWaiting,
         Action<string> onError)
     {
         // WebGL böngészőből ws:// LAN IP nem elérhető (mixed content + private IP tiltás)
@@ -352,18 +352,19 @@ public class MatchmakingClient : MonoBehaviour
             {
                 if (err != null) { onError?.Invoke(err); return; }
 
-                var resp  = JsonUtility.FromJson<MatchmakingStatusJson>(json);
-                var names = resp.player_names  ?? Array.Empty<string>();
-                var ranks = resp.player_ranks  ?? Array.Empty<int>();
+                var resp   = JsonUtility.FromJson<MatchmakingStatusJson>(json);
+                var names  = resp.player_names  ?? Array.Empty<string>();
+                var ranks  = resp.player_ranks  ?? Array.Empty<int>();
+                var levels = resp.player_levels ?? Array.Empty<int>();
                 if (resp.status == "matched")
                 {
                     CurrentMatchId = resp.match_id;
                     LastConnectOverrideIp = resp.server_connect_ip ?? "";
-                    onMatched?.Invoke(resp.server_host, (ushort)resp.server_port, resp.match_id, resp.player_count, names, ranks);
+                    onMatched?.Invoke(resp.server_host, (ushort)resp.server_port, resp.match_id, resp.player_count, names, ranks, levels, resp.gold_bonus);
                 }
                 else
                 {
-                    onWaiting?.Invoke(resp.countdown, resp.player_count, names, ranks);
+                    onWaiting?.Invoke(resp.countdown, resp.player_count, names, ranks, levels);
                 }
             }
         ));
@@ -627,5 +628,7 @@ public class MatchmakingClient : MonoBehaviour
         public string server_connect_ip;   // LAN kliensnek a Caddy LAN IP-je (NAT loopback elkerülés); üres = DNS feloldás
         public string[] player_names;
         public int[]    player_ranks;
+        public int[]    player_levels;
+        public int      gold_bonus;  // szint-kompenzáció: ennyi extra golddal kezd a játékos
     }
 }

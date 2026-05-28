@@ -187,7 +187,18 @@ public class AudioManager : MonoBehaviour
     public void SetMusicVolume(float volume)
     {
         musicVolume = Mathf.Clamp01(volume);
-        if (_musicSource != null) _musicSource.volume = musicVolume;
+        if (_musicSource != null && !_musicMuted)
+            _musicSource.volume = musicVolume;
+    }
+
+    private bool _musicMuted = false;
+
+    /// <summary>Elnémítja vagy visszakapcsolja a zenét, megőrzve az eredeti hangerőt.</summary>
+    public void SetMusicMute(bool mute)
+    {
+        _musicMuted = mute;
+        if (_musicSource != null)
+            _musicSource.volume = mute ? 0f : musicVolume;
     }
 
     public void SetSFXVolume(float volume)

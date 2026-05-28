@@ -18,6 +18,12 @@ using TMPro;
 /// </summary>
 public class CharacterEntryUI : MonoBehaviour
 {
+    [Header("Karakter osztály kép")]
+    public Image  classImage;
+    public Sprite archerSprite;
+    public Sprite stoneThrowerSprite;
+    public Sprite mageSprite;
+
     [Header("Normál nézet")]
     public GameObject normalView;               // a kártya fő tartalma
     public TextMeshProUGUI characterNameText;
@@ -56,6 +62,7 @@ public class CharacterEntryUI : MonoBehaviour
         if (statsText         != null) statsText.text         = $"{data.XPInCurrentLevel}/{data.XPNeededForNextLevel}";
         if (xpBarFill         != null) xpBarFill.fillAmount   = data.LevelProgress;
         RefreshSkillPoints(data.availableSkillPoints);
+        RefreshClassImage(data.characterClass);
         FetchAndShowRank(data);
 
         // Törlés gomb elrejtése
@@ -83,6 +90,7 @@ public class CharacterEntryUI : MonoBehaviour
         if (statsText         != null) statsText.text         = $"{data.XPInCurrentLevel}/{data.XPNeededForNextLevel}";
         if (xpBarFill         != null) xpBarFill.fillAmount   = data.LevelProgress;
         RefreshSkillPoints(data.availableSkillPoints);
+        RefreshClassImage(data.characterClass);
         FetchAndShowRank(data);
 
         // Gombok
@@ -128,6 +136,18 @@ public class CharacterEntryUI : MonoBehaviour
     {
         if (normalView  != null) normalView.SetActive(!show);
         if (confirmView != null) confirmView.SetActive(show);
+    }
+
+    void RefreshClassImage(CharacterClass cls)
+    {
+        if (classImage == null) return;
+        classImage.sprite = cls switch
+        {
+            CharacterClass.StoneThrower => stoneThrowerSprite,
+            CharacterClass.Mage         => mageSprite,
+            _                           => archerSprite,
+        };
+        classImage.gameObject.SetActive(classImage.sprite != null);
     }
 
     void RefreshSkillPoints(int points)

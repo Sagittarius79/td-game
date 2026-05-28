@@ -77,10 +77,12 @@ public class UserProgressManager : MonoBehaviour
     // ── Karakter létrehozás / választás ──────────────────────────────
 
     /// <summary>Új karakter létrehozása és aktiválása.</summary>
-    public void CreateCharacter(string name) => CreateCharacter(name, CharacterGameMode.PvP);
+    public void CreateCharacter(string name) => CreateCharacter(name, CharacterGameMode.PvP, CharacterClass.Archer);
 
-    /// <summary>Uj karakter letrehozasa a valasztott jatekmoddal es aktivalasa.</summary>
-    public void CreateCharacter(string name, CharacterGameMode gameMode)
+    public void CreateCharacter(string name, CharacterGameMode gameMode) => CreateCharacter(name, gameMode, CharacterClass.Archer);
+
+    /// <summary>Uj karakter letrehozasa a valasztott jatekmoddal, karakterosztalyyal es aktivalasa.</summary>
+    public void CreateCharacter(string name, CharacterGameMode gameMode, CharacterClass characterClass)
     {
         string id = Guid.NewGuid().ToString("N").Substring(0, 8);
         var ch = new UserProgressData
@@ -88,6 +90,7 @@ public class UserProgressManager : MonoBehaviour
             characterId          = id,
             characterName        = name.Trim(),
             gameMode             = gameMode,
+            characterClass       = characterClass,
             createdAtUtc         = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
             availableSkillPoints = 1
         };
@@ -150,6 +153,84 @@ public class UserProgressManager : MonoBehaviour
         }
 
         SaveActiveCharacter();
+    }
+
+    // ── Inventory: kill számláló + kristály ─────────────────────────
+
+    public const int KillsPerCrystal = 1000;
+
+    public long TotalMonstersKilled => _activeCharacter?.totalMonstersKilled ?? 0;
+    public int  Crystals            => _activeCharacter?.crystals            ?? 0;
+
+    /// <summary>
+    /// Szörny megölés rögzítése. Minden 1000. megölésnél +1 kristályt ad.
+    /// GameManager.OnEnemyKilled eseményből hívandó.
+    /// </summary>
+    public void RecordMonsterKill()
+    {
+        if (_activeCharacter == null) return;
+
+        long before = _activeCharacter.totalMonstersKilled;
+        _activeCharacter.totalMonstersKilled++;
+        long after  = _activeCharacter.totalMonstersKilled;
+
+        // Kristály jutalom: átlépte-e az 1000-es határt?
+        if (after / KillsPerCrystal > before / KillsPerCrystal)
+        {
+            _activeCharacter.crystals++;
+            OnCrystalEarned?.Invoke(_activeCharacter.crystals);
+            Debug.Log($"[Inventory] Kristály! Összes: {_activeCharacter.crystals} | Ölések: {after}");
+        }
+
+        // Nem mentünk minden ölésnél – csak hullám végén / meccs végén
+        // (a SaveActiveCharacter() máshol hívódik majd)
+        OnKillCountChanged?.Invoke(after);
+    }
+
+    /// <summary>Manuálisan ad kristályt (jutalom, debug, stb.).</summary>
+    public void AddCrystals(int amount)
+    {
+        if (_activeCharacter == null || amount <= 0) return;
+        _activeCharacter.crystals += amount;
+        OnCrystalEarned?.Invoke(_activeCharacter.crystals);
+        SaveActiveCharacter();
+    }
+
+    public event Action<long>   OnKillCountChanged;  // paraméter: összes kill
+    public event Action<int>    OnCrystalEarned;     // paraméter: új kristály darabszám
+    public event Action<string> OnCharmAdded;        // paraméter: definitionId
+    public event Action<string> OnCharmLost;         // paraméter: definitionId (nincs hely)
+
+    public const int CharmGridSize = 24;
+
+    /// <summary>
+    /// Hozzáad egy charmot az inventoryhoz az első szabad grid slotba.
+    /// Ha mind a 24 slot foglalt, a charm elveszik – visszaad false-t.
+    /// </summary>
+    public bool AddCharm(string definitionId)
+    {
+        if (_activeCharacter == null || string.IsNullOrEmpty(definitionId)) return false;
+
+        var charms = _activeCharacter.charms;
+
+        // Első szabad grid slot keresése (0–23)
+        for (int i = 0; i < CharmGridSize; i++)
+        {
+            bool occupied = charms.Exists(c => c.gridSlot == i && c.equipSlot == -1);
+            if (!occupied)
+            {
+                charms.Add(new CharmInstance { definitionId = definitionId, gridSlot = i, equipSlot = -1 });
+                SaveActiveCharacter();
+                OnCharmAdded?.Invoke(definitionId);
+                Debug.Log($"[Inventory] Charm hozzáadva: {definitionId} → grid slot {i}");
+                return true;
+            }
+        }
+
+        // Nincs szabad hely
+        Debug.LogWarning($"[Inventory] Nincs szabad hely! Charm elveszett: {definitionId}");
+        OnCharmLost?.Invoke(definitionId);
+        return false;
     }
 
     // ── Nyerés / vereség ─────────────────────────────────────────────

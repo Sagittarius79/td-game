@@ -123,6 +123,11 @@ MonoBehaviour:
   prismaBounceSkillBonus: 0
   prismaBounceRange: 0
   prismaBouncesLeft: 0
+  repeatAttack: 0
+  repeatCount: 1
+  repeatArcWidth: 2
+  repeatDamageIncrement: 0
+  repeatOutOfRangeHits: 0
   canHitFlying: 0
   moveSpeed: 8
   maxLifetime: 5
@@ -144,6 +149,13 @@ MonoBehaviour:
   burnIsAOE: 0
   burnAOERadius: 1.5
   burnVfxPrefab: {fileID: 0}
+  twoDragonBurnMaxDoT: 1
+  twoDragonBurnSpread: 0
+  twoDragonBurnSpreadRadius: 1.5
+  twoDragonBurnSpreadChance: 0.5
+  twoDragonBurnSpreadGeneration: 0
+  twoDragonBurnDmgBonus: 0
+  twoDragonBurnDurationBonus: 0
   canPlaceTrap: 0
   trapPrefab: {fileID: 0}
   trapDamage: 0
@@ -161,6 +173,15 @@ MonoBehaviour:
   stoneFocusBonus: 0
   stoneMagicAOEDmgBonus: 0
   stoneChargeDmgBonus: 0
+  eligibleForStoneCritCharm: 0
+  eligibleForAOECritCharm: 0
+  eligibleForStoneStunCharm: 0
+  eligibleForLaserArmorStripCharm: 0
+  eligibleForBurnCharm: 0
+  eligibleForPoisonBounceCharm: 0
+  eligibleForTeleportHalveCharm: 0
+  eligibleForTurulExtraBirdCharm: 0
+  eligibleForInstantKillCharm: 1
   damage: 0
   aoeDamage: 0
   magicDamage: 0
@@ -172,6 +193,8 @@ MonoBehaviour:
   stunChance: 0
   trapChance: 0
   javelinActiveCritChance: 0
+  towerPosition: {x: 0, y: 0, z: 0}
+  towerRange: -1
 --- !u!114 &-6704235160769847738
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -185,17 +208,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::altalanos_fejlesztesek
   gyujtas: 0
+  gyujtasEsely: 1
   gyutasTalalatSebzes: 10
   gyutasDoTSebzesMpenkent: 500
   gyutasIdotartam: 3
-  gyutasVfxPrefab: {fileID: 1925797890149516848, guid: 913757b34de41d1449814b525862a2ba, type: 3}
   stun: 0
   stunEsely: 0.5
   stunIdotartam: 1.5
+  stunEffectPrefab: {fileID: 0}
   multiShot: 0
-  multiShotMennyiseg: 2
   multiShotKulonbozoCelpont: 1
   multiShotKeresesiSugar: 5
+  multiShotEsely: 1
+  multiShotMennyiseg: 2
   pattanas: 0
   pattanasAlapEsely: 40
   pattanasArmorBonusz: 0
@@ -203,8 +228,9 @@ MonoBehaviour:
   pattanasMaxSzam: 3
   pattanasSugar: 2
   _pattanasMaradt: -1
+  runeConfig: {fileID: 11400000, guid: 47ad1102bb26d474abd5452ce7f38c75, type: 2}
   mereg: 0
+  meregEsely: 1
   meregSebzesMpenkent: 5
   meregIdotartam: 4
   meregMaxStack: 5
-  meregVfxPrefab: {fileID: 602703947186793091, guid: 003eecc5fee1c094f9fb75168efaa434, type: 3}

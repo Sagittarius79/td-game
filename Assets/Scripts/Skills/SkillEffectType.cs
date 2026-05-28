@@ -102,4 +102,16 @@ public enum SkillEffectType
     TurulCount,             // Egyszerre aktív lövedékek maximuma szintenként
     [UnityEngine.InspectorName("Turul Repeat Speed (x/lvl)")]
     TurulRepeatSpeed,       // repeatArcWidth csökkentése szintenként → kisebb ív, gyorsabb újratámadás
+
+    // ── Two Dragon ────────────────────────────────────────────────
+    [UnityEngine.InspectorName("Two Dragon DoT Time (x/lvl)")]
+    TwoDragonDotTime,       // Tűz DoT időtartamának növelése másodpercenként szintenként
+    [UnityEngine.InspectorName("Two Dragon DoT DMG (x/lvl)")]
+    TwoDragonDotDmg,        // Tűz DoT sebzés/mp növelése szintenként
+    [UnityEngine.InspectorName("Two Dragon Range (x/lvl)")]
+    TwoDragonRange,         // Two Dragon torony hatótávolságának növelése szintenként
+    [UnityEngine.InspectorName("Two Dragon Fire Spread (x/lvl)")]
+    TwoDragonFireSpread,    // Tűz átterjedés engedélyezése; 1+ pont = aktív, érték = generációk száma
+    [UnityEngine.InspectorName("Two Dragon Fire More DoT (x/lvl)")]
+    TwoDragonFireMoreDoT,   // Egy célponton egyszerre engedélyezett BurningEffect példányok száma +1/szint
 }

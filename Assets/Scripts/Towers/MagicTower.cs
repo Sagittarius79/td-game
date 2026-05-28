@@ -11,6 +11,14 @@ public class MagicTower : Tower
     // Az alap Tower.Shoot() mindent kezel (damageType, teleportOnHit, stb.)
     // A damageType-ot az Inspectorban kell Magic-re állítani a prefabon.
 
+    protected override float GetEffectiveRange()
+    {
+        float r = attackRange;
+        if (CharacterClassBonus.Is(CharacterClass.Mage))
+            r *= CharacterClassBonus.Config?.rangeMultiplier ?? 1.1f;
+        return r;
+    }
+
     protected override float GetEffectiveAttackSpeed()
     {
         if (magicSkillTree == null || UserProgressManager.Instance == null) return attackSpeed;

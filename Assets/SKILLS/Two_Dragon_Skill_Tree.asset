@@ -1,0 +1,100 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 54d5d29b10be90e40ba3386a48a10b03, type: 3}
+  m_Name: Two_Dragon_Skill_Tree
+  m_EditorClassIdentifier: Assembly-CSharp::SkillTreeDefinition
+  treeName: Turul
+  skillPointsPerLevel: 1
+  nodes:
+  - id: Two_Dragon_Unlock
+    displayName: Unlock Two Dragon Tower
+    description: 'Now, you can Build Two Dragon "Anti Frost"  Tower '
+    icon: {fileID: 0}
+    maxLevel: 1
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites: []
+    effectType: 0
+    effectValuePerLevel: 1
+    fixedCostPerLevel: 0
+    minCharacterLevel: 10
+  - id: Two_Dragon_DoT_Time
+    displayName: Two Dragon DoT Time Boost
+    description: '+1 Tick / Skill '
+    icon: {fileID: 0}
+    maxLevel: 10
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites:
+    - Two_Dragon_Unlock
+    effectType: 50
+    effectValuePerLevel: 1
+    fixedCostPerLevel: 5
+    minCharacterLevel: 10
+  - id: Two_Dragon_DoT_DMG
+    displayName: Two Dragon DoT DMG Boost
+    description: '+1 DMG Tick / Skill '
+    icon: {fileID: 0}
+    maxLevel: 10
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites:
+    - Two_Dragon_DoT_Time
+    effectType: 51
+    effectValuePerLevel: 1
+    fixedCostPerLevel: 3
+    minCharacterLevel: 10
+  - id: Two_Dragon_Range
+    displayName: Two Dragon Range Boost
+    description: '+0.3 Range / Skill '
+    icon: {fileID: 0}
+    maxLevel: 10
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites:
+    - Two_Dragon_DoT_DMG
+    effectType: 52
+    effectValuePerLevel: 0.3
+    fixedCostPerLevel: 3
+    minCharacterLevel: 10
+  - id: Two_Dragon_Fire_Spread
+    displayName: Two Dragon Fire Spread
+    description: 'Fire Can Spread Once To Another Enemy '
+    icon: {fileID: 0}
+    maxLevel: 1
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites:
+    - Two_Dragon_Range
+    effectType: 53
+    effectValuePerLevel: 1
+    fixedCostPerLevel: 10
+    minCharacterLevel: 10
+  - id: Two_Dragon_Fire_More_DoT
+    displayName: Two Dragon Fire More DoT
+    description: '+1 DoT / Skill '
+    icon: {fileID: 0}
+    maxLevel: 3
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites:
+    - Two_Dragon_Range
+    effectType: 54
+    effectValuePerLevel: 1
+    fixedCostPerLevel: 5
+    minCharacterLevel: 10

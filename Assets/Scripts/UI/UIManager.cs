@@ -38,6 +38,9 @@ public class UIManager : MonoBehaviour
     public Button restartButton;
     [Tooltip("Megnyitja a leaderboard weboldalt")]
     public Button statisticButton;
+    [Tooltip("Megnyitja a SpectatePanel-t (csak PvP módban látható)")]
+    public Button spectateButton;
+    public SpectatePanel spectatePanel;
     [Tooltip("A főmenü scene neve (ahol a Solo / PvP választó van)")]
     public string mainMenuSceneName = "MainMenu";
 
@@ -59,6 +62,28 @@ public class UIManager : MonoBehaviour
     [Tooltip("Hang, ami lejátszódik amikor a játékos nyer")]
     public AudioClip victorySound;
 
+    [Header("Sebesség gomb")]
+    public Button speedToggleButton;
+    [Tooltip("A gomb szövege (TextMeshPro)")]
+    public TextMeshProUGUI speedToggleText;
+
+    [Header("Charm jutalom – játék vége")]
+    [Tooltip("A charm jutalom panel (alapból inaktív, AwardEndGameCharm aktiválja)")]
+    public GameObject      charmRewardPanel;
+    [Tooltip("A charm ikon Image")]
+    public Image           charmRewardIcon;
+    [Tooltip("Az ikon mögötti ragyogás Image (lágy kör sprite, CharmIcon gyereke)")]
+    public Image           charmGlowImage;
+    [Tooltip("Pl. \"Tüzes Nyíl\"")]
+    public TextMeshProUGUI charmRewardName;
+    [Tooltip("Pl. \"Ritka\"")]
+    public TextMeshProUGUI charmRewardRarity;
+    [Tooltip("Hang ami lejátszódik charm megszerzésekor")]
+    public AudioClip       charmRewardSound;
+
+    [Header("Megölt szörnyek – játék vége")]
+    public MonsterKillsUI monsterKillsUI;
+
     [Header("XP kijelzés – játék vége")]
     [Tooltip("Pl. \"+150 XP\" – az ebben a meccsben szerzett XP")]
     public TextMeshProUGUI xpGainedText;
@@ -77,7 +102,8 @@ public class UIManager : MonoBehaviour
 
     private Coroutine notificationCoroutine;
     private Coroutine eliminationCoroutine;
-    private int _levelBeforeGame = 1;   // szint a meccs előtt – szintlépés detektáláshoz
+    private int _levelBeforeGame = 1;
+    private bool _isFastSpeed = false;
 
     void Awake()
     {
@@ -120,6 +146,17 @@ public class UIManager : MonoBehaviour
             statisticButton.onClick.RemoveAllListeners();
             statisticButton.onClick.AddListener(OpenLeaderboardWeb);
         }
+        if (spectateButton != null)
+        {
+            spectateButton.onClick.RemoveAllListeners();
+            spectateButton.onClick.AddListener(() => spectatePanel?.Open(gameOverPanel));
+        }
+        if (speedToggleButton != null)
+        {
+            speedToggleButton.onClick.RemoveAllListeners();
+            speedToggleButton.onClick.AddListener(ToggleSpeed);
+        }
+        UpdateSpeedButtonText();
     }
 
     void Update()
@@ -241,10 +278,16 @@ public class UIManager : MonoBehaviour
     void ShowGameOver()
     {
         if (gameOverPanel == null) return;
+        Time.timeScale = 1f;
+        _isFastSpeed = false;
+        UpdateSpeedButtonText();
         gameOverPanel.SetActive(true);
 
         bool pvpMode = NetworkGameManager.Instance != null && NetworkGameManager.Instance.IsPvPMode;
         bool won     = false;
+
+        if (spectateButton != null)
+            spectateButton.gameObject.SetActive(pvpMode);
 
         if (pvpMode)
         {
@@ -265,11 +308,16 @@ public class UIManager : MonoBehaviour
 
         UpdateSSFStats();
         ShowXPResult(won);
+        AwardEndGameCharm(won);
+        monsterKillsUI?.Populate();
     }
 
     void ShowVictory()
     {
         if (gameOverPanel == null) return;
+        Time.timeScale = 1f;
+        _isFastSpeed = false;
+        UpdateSpeedButtonText();
         gameOverPanel.SetActive(true);
         AudioManager.Instance?.PlaySFX(victorySound);
         if (gameOverTitle    != null) gameOverTitle.text    = "VICTORY!";
@@ -277,7 +325,212 @@ public class UIManager : MonoBehaviour
 
         UpdateSSFStats();
         ShowXPResult(won: true);
+        AwardEndGameCharm(won: true);
+        monsterKillsUI?.Populate();
     }
+
+    /// <summary>
+    /// Játék végén esély-alapú charm jutalom.
+    /// PvP:      hullámonként +0.5% + (győzelem ? +10%), max 70%.
+    /// Solo/SSF: hullám / 3 %, max 70% (nincs győzelem bónusz).
+    /// Drop esetén szint sorsolás (Lvl3 2% / Lvl2 8% / Lvl1 90%), majd véletlen charm az adott szintből.
+    /// </summary>
+    void AwardEndGameCharm(bool won)
+    {
+        if (charmRewardPanel != null) charmRewardPanel.SetActive(false);
+
+        // ── Drop esély kiszámítása ──────────────────────────────
+        int  wave  = GameManager.Instance?.CurrentWave ?? 0;
+        bool isPvP = NetworkGameManager.Instance != null && NetworkGameManager.Instance.IsPvPMode;
+
+        float chance;
+        if (isPvP)
+            chance = wave * 0.5f + (won ? 10f : 0f);   // PvP szabály
+        else
+            chance = wave / 3f;                        // Solo + SSF szabály
+        chance = Mathf.Min(chance, 70f);
+
+        bool dropped = Random.value * 100f < chance;
+        Debug.Log($"[UIManager] Charm drop – mód:{(isPvP ? "PvP" : "Solo/SSF")} wave:{wave} won:{won} → esély:{chance:0.#}%  dobás:{(dropped ? "SIKER" : "nincs")}");
+        if (!dropped) return;
+
+        // ── Szint sorsolás: Lvl3 2% / Lvl2 8% / Lvl1 90% ────────
+        int level = RollCharmLevel();
+
+        // ── Véletlen charm az adott szintből ────────────────────
+        var def = CharmRegistry.Instance?.GetRandomByLevel(level)
+               ?? CharmRegistry.Instance?.GetRandom(); // fallback ha nincs ilyen szint
+        if (def == null)
+        {
+            Debug.LogWarning("[UIManager] AwardEndGameCharm: nincs elérhető charm.");
+            return;
+        }
+
+        bool added = UserProgressManager.Instance?.AddCharm(def.id) ?? false;
+
+        // ── Panel feltöltése + animáció ─────────────────────────
+        if (charmRewardPanel != null)
+        {
+            charmRewardPanel.SetActive(true);
+
+            if (charmRewardIcon != null)
+            {
+                charmRewardIcon.sprite  = def.icon;
+                charmRewardIcon.enabled = def.icon != null;
+            }
+
+            if (charmRewardName != null)
+                charmRewardName.text = added
+                    ? $"{def.displayName}  <size=70%>Lvl{def.level}</size>"
+                    : $"{def.displayName}\n<size=70%><color=red>Inventory full!</color></size>";
+
+            if (charmRewardRarity != null)
+            {
+                charmRewardRarity.text  = RarityLabel(def.rarity);
+                charmRewardRarity.color = RarityColor(def.rarity);
+            }
+
+            StartCoroutine(CharmRewardAnimation(charmRewardPanel, def.rarity));
+        }
+
+        if (added && charmRewardSound != null)
+            AudioManager.Instance?.PlaySFX(charmRewardSound);
+
+        Debug.Log($"[UIManager] Charm jutalom: {def.displayName} (Lvl{def.level}) – added:{added}");
+    }
+
+    /// <summary>Szint sorsolás: Lvl3 2%, Lvl2 8%, Lvl1 90%.</summary>
+    static int RollCharmLevel()
+    {
+        float r = Random.value * 100f;
+        if (r < 2f)  return 3;   // 0–2%
+        if (r < 10f) return 2;   // 2–10%
+        return 1;                // 10–100%
+    }
+
+    /// <summary>
+    /// Pop-in (pici méretről forogva nő, ragyogás megjelenik) →
+    /// 3s pulzáló ragyogás → fade-out animáció.
+    /// </summary>
+    IEnumerator CharmRewardAnimation(GameObject panel, CharmRarity rarity)
+    {
+        // CanvasGroup a fade-hez – ha nincs, hozzáadjuk
+        var cg = panel.GetComponent<CanvasGroup>();
+        if (cg == null) cg = panel.AddComponent<CanvasGroup>();
+
+        var rt = panel.GetComponent<RectTransform>();
+
+        // Ragyogás alap színe = rarity szín, de kezdetben 0 alfával
+        Color glowBase = RarityColor(rarity);
+        if (charmGlowImage != null)
+        {
+            glowBase.a = 0f;
+            charmGlowImage.color = glowBase;
+            charmGlowImage.rectTransform.localScale = Vector3.one;
+        }
+
+        // Kezdőállapot: kicsi, teljesen látható, elforgatva
+        rt.localScale    = Vector3.zero;
+        rt.localRotation = Quaternion.Euler(0f, 0f, 4f * 360f);
+        cg.alpha         = 1f;
+        panel.SetActive(true);
+
+        // ── Pop-in fázis (3s, 4 teljes fordulat) ─────────────────
+        const float popDuration = 3f;
+        float elapsed = 0f;
+
+        while (elapsed < popDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            float t = Mathf.Clamp01(elapsed / popDuration);
+
+            // EaseOutBack skála + forgás
+            rt.localScale    = Vector3.one * EaseOutBack(t);
+            rt.localRotation = Quaternion.Euler(0f, 0f, Mathf.Lerp(4f * 360f, 0f, t));
+
+            // Ragyogás alpha fokozatosan jelenik meg a pop-in alatt
+            if (charmGlowImage != null)
+            {
+                glowBase.a = t * 0.75f;
+                charmGlowImage.color = glowBase;
+            }
+
+            yield return null;
+        }
+
+        rt.localScale    = Vector3.one;
+        rt.localRotation = Quaternion.identity;
+
+        // ── Pulzáló ragyogás fázis (3s) ──────────────────────────
+        const float holdDuration = 3f;
+        elapsed = 0f;
+
+        while (elapsed < holdDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+
+            if (charmGlowImage != null)
+            {
+                // Alpha: 0.35 – 0.80 között lélegzik ~1.5Hz-en
+                float pulse = (Mathf.Sin(elapsed * Mathf.PI * 1.5f) + 1f) * 0.5f;
+                glowBase.a = Mathf.Lerp(0.35f, 0.80f, pulse);
+                charmGlowImage.color = glowBase;
+
+                // Méret is kicsit pulzál: 1.0 – 1.2×
+                float gs = Mathf.Lerp(1.0f, 1.2f, pulse);
+                charmGlowImage.rectTransform.localScale = Vector3.one * gs;
+            }
+
+            yield return null;
+        }
+
+        // ── Fade-out fázis (0.6s) ─────────────────────────────────
+        const float fadeDuration = 0.6f;
+        elapsed = 0f;
+
+        while (elapsed < fadeDuration)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            cg.alpha = 1f - Mathf.Clamp01(elapsed / fadeDuration);
+            yield return null;
+        }
+
+        cg.alpha = 0f;
+        panel.SetActive(false);
+
+        // Visszaállítás a következő megjelenítéshez
+        cg.alpha = 1f;
+        if (charmGlowImage != null)
+        {
+            glowBase.a = 0f;
+            charmGlowImage.color = glowBase;
+            charmGlowImage.rectTransform.localScale = Vector3.one;
+        }
+    }
+
+    /// <summary>Ease-Out-Back görbe: túllő 1-en, majd visszaáll.</summary>
+    static float EaseOutBack(float t)
+    {
+        const float c1 = 1.70158f;
+        const float c3 = c1 + 1f;
+        return 1f + c3 * Mathf.Pow(t - 1f, 3f) + c1 * Mathf.Pow(t - 1f, 2f);
+    }
+
+    static string RarityLabel(CharmRarity r) => r switch
+    {
+        CharmRarity.Rare      => "Rare",
+        CharmRarity.Epic      => "Epic",
+        CharmRarity.Legendary => "Legendary",
+        _                     => "Common",
+    };
+
+    static Color RarityColor(CharmRarity r) => r switch
+    {
+        CharmRarity.Rare      => new Color(0.2f, 0.5f, 1.0f),
+        CharmRarity.Epic      => new Color(0.7f, 0.2f, 1.0f),
+        CharmRarity.Legendary => new Color(1.0f, 0.7f, 0.1f),
+        _                     => new Color(0.7f, 0.7f, 0.7f),
+    };
 
     /// <summary>
     /// SSF karakternél elmenti a max hullámot és a játékban töltött időt,
@@ -286,36 +539,56 @@ public class UIManager : MonoBehaviour
     void UpdateSSFStats()
     {
         var upm = UserProgressManager.Instance;
-        if (upm == null || !upm.HasCharacter || !upm.Data.IsSSF) return;
+        if (upm == null || !upm.HasCharacter) return;
 
-        int reachedWave    = GameManager.Instance?.CurrentWave ?? 0;
-        int elapsedSeconds = GameManager.Instance?.ElapsedPlaySeconds ?? 0;
-
-        var data = upm.Data;
-        if (reachedWave > data.maxWave)
+        // SSF-specifikus: max hullám és idő frissítése
+        if (upm.Data.IsSSF)
         {
-            // Új rekord – az idő az ehhez a futáshoz tartozó érték
-            data.maxWave          = reachedWave;
-            data.totalPlaySeconds = elapsedSeconds;
-        }
-        else if (reachedWave == data.maxWave && elapsedSeconds > 0 &&
-                 (data.totalPlaySeconds == 0 || elapsedSeconds < data.totalPlaySeconds))
-        {
-            // Azonos max wave, de gyorsabb idő – megőrizzük a jobbat
-            data.totalPlaySeconds = elapsedSeconds;
-        }
-        // Ha reachedWave < data.maxWave: nem frissítünk semmit
+            int reachedWave    = GameManager.Instance?.CurrentWave ?? 0;
+            int elapsedSeconds = GameManager.Instance?.ElapsedPlaySeconds ?? 0;
 
+            var data = upm.Data;
+            if (reachedWave > data.maxWave)
+            {
+                // Új rekord – az idő az ehhez a futáshoz tartozó érték
+                data.maxWave          = reachedWave;
+                data.totalPlaySeconds = elapsedSeconds;
+            }
+            else if (reachedWave == data.maxWave && elapsedSeconds > 0 &&
+                     (data.totalPlaySeconds == 0 || elapsedSeconds < data.totalPlaySeconds))
+            {
+                // Azonos max wave, de gyorsabb idő – megőrizzük a jobbat
+                data.totalPlaySeconds = elapsedSeconds;
+            }
+            Debug.Log($"[SSF] Stats mentve – maxWave: {data.maxWave}, bestRunSeconds: {data.totalPlaySeconds}");
+        }
+
+        // Minden módnál: kill/kristály mentés + szerver sync
         upm.Save();
         ServerSyncManager.GetOrCreate().TriggerSync();
-        Debug.Log($"[SSF] Stats mentve – maxWave: {data.maxWave}, bestRunSeconds: {data.totalPlaySeconds}");
+    }
+
+    void ToggleSpeed()
+    {
+        _isFastSpeed = !_isFastSpeed;
+        Time.timeScale = _isFastSpeed ? 10f : 1f;
+        UpdateSpeedButtonText();
+    }
+
+    void UpdateSpeedButtonText()
+    {
+        if (speedToggleText != null)
+            speedToggleText.text = _isFastSpeed ? "10x" : "1x";
     }
 
     void ReturnToMainMenu()
     {
-        // PvP módban előbb lecsatlakozunk, utána töltjük a főmenüt
+        // PvP módban a Disconnect() már maga hívja a LoadScene-t – ne tegyük kétszer
         if (NetworkGameManager.Instance != null && NetworkGameManager.Instance.IsPvPMode)
+        {
             NetworkGameManager.Instance.Disconnect();
+            return;
+        }
 
         SceneManager.LoadScene(mainMenuSceneName);
     }
@@ -362,15 +635,26 @@ public class UIManager : MonoBehaviour
         var xpMgr = XPManager.Instance;
         if (xpMgr != null)
         {
+            bool isSSF = UserProgressManager.Instance != null && UserProgressManager.Instance.HasCharacter
+                         && UserProgressManager.Instance.Data.IsSSF;
+
             if (sentHPText != null)
-                sentHPText.text = $"Sent HP: {xpMgr.LastMatchSentHP}";
+            {
+                sentHPText.text = isSSF
+                    ? $"SSF Evil pain: {xpMgr.LastMatchSentHP}"
+                    : $"Sent HP: {xpMgr.LastMatchSentHP}";
+            }
 
             if (placementText != null)
             {
-                string placement = xpMgr.LastMatchPlacement == 1
-                    ? "Wictory, full XP!"
-                    : $"{xpMgr.LastMatchPlacement}. place";
-                placementText.text = placement;
+                placementText.gameObject.SetActive(!isSSF);
+                if (!isSSF)
+                {
+                    string placement = xpMgr.LastMatchPlacement == 1
+                        ? "Wictory, full XP!"
+                        : $"{xpMgr.LastMatchPlacement}. place";
+                    placementText.text = placement;
+                }
             }
 
             if (xpBreakdownText != null)

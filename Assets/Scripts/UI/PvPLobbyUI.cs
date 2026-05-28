@@ -49,7 +49,13 @@ public class PvPLobbyUI : MonoBehaviour
 
     [Header("Waiting panel")]
     public TextMeshProUGUI waitStatusText;
+    public TextMeshProUGUI waitPlayerCountText;
     public Button          waitLeaveButton;
+
+    [Header("Tutorial (opcionális – várakozás közben)")]
+    [Tooltip("Ha be van kötve, a várakozás alatt lapozható tutorial kártyák jelennek meg")]
+    public TutorialCardsUI tutorialCards;
+    public Button          tooltipsButton;
 
     // ── Hangok ───────────────────────────────────────────────────────
 
@@ -117,6 +123,7 @@ public class PvPLobbyUI : MonoBehaviour
         if (_autoLobbyCoroutine != null) { StopCoroutine(_autoLobbyCoroutine); _autoLobbyCoroutine = null; }
         if (_hostCountdownCoroutine != null) { StopCoroutine(_hostCountdownCoroutine); _hostCountdownCoroutine = null; }
 
+        tutorialCards?.Hide();
         MatchmakingClient.Instance?.LeaveMatchmakingQueue();
 
         SetWaitStatus(message);
@@ -144,7 +151,7 @@ public class PvPLobbyUI : MonoBehaviour
 
     void StartAutoLobby()
     {
-        SetWaitStatus("Csatlakozás a sorhoz...");
+        SetWaitStatus("Joining queue...");
         ShowPanel(waitingPanel);
         if (waitLeaveButton != null) waitLeaveButton.interactable = true;
 
@@ -228,6 +235,7 @@ public class PvPLobbyUI : MonoBehaviour
         _autoLobbyCoroutine = null;
         _autoLobbyMatched   = true;   // a még in-flight callbackek ne hívjanak StartClient-et
         _autoLobbyInFlight  = false;
+        tutorialCards?.Hide();
         MatchmakingClient.Instance?.LeaveMatchmakingQueue();
         NetworkGameManager.Instance?.Disconnect();
         ShowPanel(modeSelectPanel);
@@ -235,6 +243,9 @@ public class PvPLobbyUI : MonoBehaviour
 
     /// <summary>"JOIN (QR)" gomb – megnyitja a QR olvasó panelt.</summary>
     public void OnJoinPressed() => ShowPanel(joinPanel);
+
+    /// <summary>ToolTips gomb – tutorial kártyák megjelenítése.</summary>
+    public void OnTooltipsPressed() => tutorialCards?.Show(null, auto: false);
 
     /// <summary>VISSZA gomb a modeSelectPanel-en – főmenübe navigál.</summary>
     public void OnBackPressed()
@@ -313,28 +324,35 @@ public class PvPLobbyUI : MonoBehaviour
             int  polledCountdown  = 0;
             string[] polledNames  = null;
             int[]    polledRanks  = null;
+            int[]    polledLevels = null;
             string   pollError    = null;
 
             MatchmakingClient.Instance?.PollMatchmakingStatus(
-                onMatched: (host, port, matchId, playerCount, playerNames, playerRanks) =>
+                onMatched: (host, port, matchId, playerCount, playerNames, playerRanks, playerLevels, goldBonus) =>
                 {
                     _autoLobbyInFlight = false;
                     if (_autoLobbyMatched) return;   // késett duplikált válasz – eldobjuk
                     _autoLobbyMatched = true;
                     responseReceived = true;
-                    SetWaitStatus($"Join... ({playerCount} Player)\n{FormatPlayerNames(playerNames, playerRanks)}");
+                    SetWaitPlayerCount(playerCount);
+                    SetWaitStatus($"Match found!\n{FormatPlayerNames(playerNames, playerRanks, playerLevels)}");
+                    if (NetworkGameManager.Instance != null)
+                        NetworkGameManager.Instance.LevelGoldBonus = goldBonus;
+                    tutorialCards?.Hide();
                     AudioManager.Instance?.PlaySFX(pvpStartSound);
                     NetworkGameManager.Instance?.StartClient(host, port);
                 },
-                onWaiting: (countdown, playerCount, playerNames, playerRanks) =>
+                onWaiting: (countdown, playerCount, playerNames, playerRanks, playerLevels) =>
                 {
                     _autoLobbyInFlight = false;
                     if (_autoLobbyMatched) return;   // már matched, ne írjuk felül a UI-t
                     responseReceived = true;
+                    SetWaitPlayerCount(playerCount);
                     polledCount     = playerCount;
                     polledCountdown = countdown;
                     polledNames     = playerNames;
                     polledRanks     = playerRanks;
+                    polledLevels    = playerLevels;
                 },
                 onError: err =>
                 {
@@ -363,10 +381,10 @@ public class PvPLobbyUI : MonoBehaviour
                 // dobják el a stale választ). Csak addig várunk az új poll előtt,
                 // amíg ez beérkezik vagy a SOLO fallback eldönti.
                 consecutiveTimeouts++;
-                SetWaitStatus($"Hálózat lassú... ({consecutiveTimeouts}/{maxConsecutiveTimeouts})");
+                SetWaitStatus($"Slow network... ({consecutiveTimeouts}/{maxConsecutiveTimeouts})");
                 if (consecutiveTimeouts >= maxConsecutiveTimeouts)
                 {
-                    SetWaitStatus("Nem találtunk partnert – SOLO mód indul...");
+                    SetWaitStatus("No opponent found – starting SOLO mode...");
                     yield return new WaitForSeconds(1f);
                     MatchmakingClient.Instance?.LeaveMatchmakingQueue();
                     StartSoloMode();
@@ -385,12 +403,12 @@ public class PvPLobbyUI : MonoBehaviour
             }
             else
             {
-                string nameList = FormatPlayerNames(polledNames, polledRanks);
+                string nameList = FormatPlayerNames(polledNames, polledRanks, polledLevels);
                 if (polledCount < 2)
                 {
                     // 1 játékos van a sorban: a szerver még nem indította el a countdown-t,
                     // így nem mutatunk konkrét másodpercszámot.
-                    SetWaitStatus($"Játékosra várakozás...\n{nameList}");
+                    SetWaitStatus($"Waiting for players...\n{nameList}");
                 }
                 else
                 {
@@ -483,26 +501,47 @@ public class PvPLobbyUI : MonoBehaviour
         if (waitStatusText != null) waitStatusText.text = msg;
     }
 
-    string FormatPlayerNames(string[] names, int[] ranks = null)
+    void SetWaitPlayerCount(int count)
+    {
+        if (waitPlayerCountText != null) waitPlayerCountText.text = $"{count}";
+    }
+
+    string FormatPlayerNames(string[] names, int[] ranks = null, int[] levels = null)
     {
         if (names == null || names.Length == 0) return "";
 
-        // Párosítjuk a neveket a rangokkal, majd növekvő rang szerint rendezünk (1 = legjobb)
-        var pairs = new (string name, int rank)[names.Length];
+        string localName = (UserProgressManager.Instance?.CharacterName ?? "").Trim();
+
+        // Párosítjuk a neveket a rangokkal és szintekkel, majd növekvő rang szerint rendezünk
+        var entries = new (string name, int rank, int level)[names.Length];
         for (int i = 0; i < names.Length; i++)
-            pairs[i] = (names[i], ranks != null && i < ranks.Length ? ranks[i] : 0);
+        {
+            entries[i] = (
+                names[i],
+                ranks  != null && i < ranks.Length  ? ranks[i]  : 0,
+                levels != null && i < levels.Length ? levels[i] : 0
+            );
+        }
 
-        System.Array.Sort(pairs, (a, b) => a.rank.CompareTo(b.rank));
+        System.Array.Sort(entries, (a, b) => a.rank.CompareTo(b.rank));
 
-        bool hasRank = ranks != null && ranks.Length > 0;
         var sb = new System.Text.StringBuilder();
-        for (int i = 0; i < pairs.Length; i++)
+        for (int i = 0; i < entries.Length; i++)
         {
             if (i > 0) sb.Append('\n');
-            if (hasRank && pairs[i].rank > 0)
-                sb.Append($"{pairs[i].name}  - Rank {pairs[i].rank}");
-            else
-                sb.Append(pairs[i].name);
+
+            bool isMe = !string.IsNullOrEmpty(localName) &&
+                        string.Equals(entries[i].name.Trim(), localName, System.StringComparison.OrdinalIgnoreCase);
+
+            if (isMe) sb.Append("<color=#5CFF8A>");
+            sb.Append(entries[i].name);
+            if (isMe) sb.Append("</color>");
+
+            if (entries[i].rank > 0)
+                sb.Append($" | Rank {entries[i].rank}");
+
+            if (entries[i].level > 0)
+                sb.Append($" | Lvl {entries[i].level}");
         }
         return sb.ToString();
     }

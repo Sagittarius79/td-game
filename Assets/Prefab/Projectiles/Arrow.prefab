@@ -83,12 +83,12 @@ SpriteRenderer:
   m_SortingLayer: 6
   m_SortingOrder: 0
   m_MaskInteraction: 0
-  m_Sprite: {fileID: -765150924802650856, guid: bf67f87687eaf9f46af40d71688f905b, type: 3}
+  m_Sprite: {fileID: 7612248872184694477, guid: 05baeb109457ead43901bc58e84e72e5, type: 3}
   m_Color: {r: 1, g: 1, b: 1, a: 1}
   m_FlipX: 0
   m_FlipY: 0
   m_DrawMode: 0
-  m_Size: {x: 0.29, y: 0.29}
+  m_Size: {x: 3.4, y: 7.87}
   m_AdaptiveModeThreshold: 0.5
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
@@ -123,6 +123,11 @@ MonoBehaviour:
   prismaBounceSkillBonus: 0
   prismaBounceRange: 0
   prismaBouncesLeft: 0
+  repeatAttack: 0
+  repeatCount: 1
+  repeatArcWidth: 2
+  repeatDamageIncrement: 0
+  repeatOutOfRangeHits: 0
   canHitFlying: 1
   moveSpeed: 8
   maxLifetime: 5
@@ -144,6 +149,13 @@ MonoBehaviour:
   burnIsAOE: 0
   burnAOERadius: 1.5
   burnVfxPrefab: {fileID: 0}
+  twoDragonBurnMaxDoT: 1
+  twoDragonBurnSpread: 0
+  twoDragonBurnSpreadRadius: 1.5
+  twoDragonBurnSpreadChance: 0.5
+  twoDragonBurnSpreadGeneration: 0
+  twoDragonBurnDmgBonus: 0
+  twoDragonBurnDurationBonus: 0
   canPlaceTrap: 1
   trapPrefab: {fileID: 6534934977582527166, guid: 3cb06293aa2f9d544b26906d43215e82, type: 3}
   trapDamage: 20
@@ -172,6 +184,8 @@ MonoBehaviour:
   stunChance: 0
   trapChance: 0
   javelinActiveCritChance: 0
+  towerPosition: {x: 0, y: 0, z: 0}
+  towerRange: -1
 --- !u!114 &1338212632367550384
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -188,14 +202,14 @@ MonoBehaviour:
   gyutasTalalatSebzes: 0
   gyutasDoTSebzesMpenkent: 5
   gyutasIdotartam: 3
-  gyutasVfxPrefab: {fileID: 0}
   stun: 0
   stunEsely: 0.25
   stunIdotartam: 1.5
+  stunEffectPrefab: {fileID: 0}
   multiShot: 0
-  multiShotMennyiseg: 2
   multiShotKulonbozoCelpont: 1
-  multiShotKeresesiSugar: 5
+  multiShotKeresesiSugar: 1
+  multiShotMennyiseg: 2
   pattanas: 0
   pattanasAlapEsely: 20
   pattanasArmorBonusz: 5
@@ -203,8 +217,8 @@ MonoBehaviour:
   pattanasMaxSzam: 1
   pattanasSugar: 4
   _pattanasMaradt: -1
+  runeConfig: {fileID: 11400000, guid: 47ad1102bb26d474abd5452ce7f38c75, type: 2}
   mereg: 0
-  meregSebzesMpenkent: 3
-  meregIdotartam: 4
-  meregMaxStack: 5
-  meregVfxPrefab: {fileID: 0}
+  meregSebzesMpenkent: 2
+  meregIdotartam: 2
+  meregMaxStack: 2

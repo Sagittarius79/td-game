@@ -149,7 +149,7 @@ MonoBehaviour:
   healthBarFill: {fileID: 8444179285808805304}
   hpText: {fileID: 1339360419568025454}
   chargeBarFill: {fileID: 5836296577984264984}
-  chargeDuration: 3
+  chargeDuration: 10
 --- !u!1 &2913535165426541544
 GameObject:
   m_ObjectHideFlags: 0

@@ -18,6 +18,7 @@ public class SpecialSkillsController : MonoBehaviour
     public Button prismaButton;
     public Button buildingsButton;
     public Button turulButton;
+    public Button twoDragonButton;
     public Button backButton;
 
     void Awake()
@@ -50,6 +51,9 @@ public class SpecialSkillsController : MonoBehaviour
 
         if (turulButton != null)
             turulButton.onClick.AddListener(() => SceneManager.LoadScene("Turul_skill_tree"));
+
+        if (twoDragonButton != null)
+            twoDragonButton.onClick.AddListener(() => SceneManager.LoadScene("Two_Dragon_Skill_Tree"));
 
         if (backButton != null)
             backButton.onClick.AddListener(Hide);

@@ -125,6 +125,8 @@ public class StoneThrowerTower : Tower
         }
 
         float effectiveAOERadius = areaRadius + aoeBonus;
+        if (CharacterClassBonus.Is(CharacterClass.StoneThrower))
+            effectiveAOERadius *= CharacterClassBonus.Config?.aoeRadiusMultiplier ?? 1.2f;
         float effectiveDamage    = damage + damageBonus + GetChargeDamageBonus();
         float effectiveAoeDamage = aoeDamage + aoeDmgBonus;
 

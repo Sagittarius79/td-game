@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections;
 
 /// <summary>
 /// Ijjász torony – kritikus találat és multi-shot skill támogatással.
@@ -8,6 +9,8 @@ public class ArcherTower : Tower
     [Header("Skill fa")]
     [Tooltip("Az ArcherSkillTree ScriptableObject")]
     public SkillTreeDefinition archerSkillTree;
+
+    private bool _isDoubleShot = false;
 
     protected override float GetEffectiveAttackSpeed()
     {
@@ -83,6 +86,8 @@ public class ArcherTower : Tower
         {
             SpawnProjectile(currentTarget, origin, effectiveDamage, critChance, armorPierce, stunChance, trapChance);
         }
+
+        TryDoubleShot();
     }
 
     void SpawnProjectile(Enemy target, Vector3 origin, float dmg, float critChance, float armorPierce, float stunChance, float trapChance)
@@ -92,5 +97,29 @@ public class ArcherTower : Tower
         if (p != null)
             p.Initialize(target, dmg, isAreaDamage, areaRadius, damageType,
                          p.canCrit ? critChance : 0f, armorPierce, stunChance, trapChance);
+    }
+
+    // ── Archer karakter bónusz: kettős lövés ─────────────────────────
+
+    void TryDoubleShot()
+    {
+        if (_isDoubleShot) return;
+        if (!CharacterClassBonus.Is(CharacterClass.Archer)) return;
+
+        var cfg = CharacterClassBonus.Config;
+        float chance = cfg?.doubleShotChance ?? 0.1f;
+        if (Random.value < chance)
+            StartCoroutine(DoubleShotCoroutine(cfg?.doubleShotDelay ?? 0.1f));
+    }
+
+    IEnumerator DoubleShotCoroutine(float delay)
+    {
+        yield return new WaitForSeconds(delay);
+        if (currentTarget != null && !currentTarget.IsDead)
+        {
+            _isDoubleShot = true;
+            Shoot();
+            _isDoubleShot = false;
+        }
     }
 }

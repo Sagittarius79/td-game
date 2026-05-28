@@ -1,0 +1,108 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dc6e3b8f2edbf8d469ef5c47bd5cc608, type: 3}
+  m_Name: TutorialCardDatabase
+  m_EditorClassIdentifier: Assembly-CSharp::TutorialCardDatabase
+  introSprite1: {fileID: 5088316998373936774, guid: aa6d087ed4e3a5b45ae8620f488fb6c0, type: 3}
+  cards:
+  - title: bomb
+    image: {fileID: 2039583676294305757, guid: 35f19a1f8b33d4945ad8222770e46683, type: 3}
+  - title: build
+    image: {fileID: 1268353227397639649, guid: 5fe27467e0642f746afd3a91cf7ebceb, type: 3}
+  - title: gel king
+    image: {fileID: 4000075174220024735, guid: a9d6116dceb827744b4d45b11d0ffcb2, type: 3}
+  - title: ghost
+    image: {fileID: -5899927303015767666, guid: 04d08bf8fc7301946babe0c6899d6591, type: 3}
+  - title: 
+    image: {fileID: -4774002908065047692, guid: ba0a5a9f70f3f5149b32dd239050f168, type: 3}
+  - title: money
+    image: {fileID: 2879923659837411734, guid: f444549ff1716bd4985777912a1d3844, type: 3}
+  - title: repear
+    image: {fileID: -696002883184369294, guid: 516493bd12d992c43a182786685a3e44, type: 3}
+  - title: shield break
+    image: {fileID: -2129354560257742720, guid: e3f7051b4b03fa9458e6b08ad273d780, type: 3}
+  - title: ssf
+    image: {fileID: 8934712064802046020, guid: 50ed58b4efd0c6447a69be5726239e17, type: 3}
+  - title: target tower
+    image: {fileID: -2815671130574920892, guid: 0a6b974b98c78b143a83e8f553b6d2c0, type: 3}
+  - title: wof
+    image: {fileID: 7821567127739065872, guid: 058328e6bc145c04789adc3f7d7fc5c2, type: 3}
+  - title: element
+    image: {fileID: 8085194124722054200, guid: 34eb20ca350257640bcce3bcfcc449c8, type: 3}
+  - title: gel
+    image: {fileID: 45971979971203733, guid: 42340a823263be042ae486a6fe8d5668, type: 3}
+  - title: giant
+    image: {fileID: 8927890629014514271, guid: 6f85311915a94b443923f290c60ed0e0, type: 3}
+  - title: gob
+    image: {fileID: -6820876866845695375, guid: cfaccad2d5d178a4d9bcde43705f51e6, type: 3}
+  - title: magelord
+    image: {fileID: 5022414650675646936, guid: 3d4f401fc9e80fd498faf2e79631d2a8, type: 3}
+  - title: orklvl2
+    image: {fileID: -2600499562544196952, guid: 49f02a5998b1ba6429a1a073def97de6, type: 3}
+  - title: orklvl3
+    image: {fileID: 8292418613776802886, guid: 80c86e67499b9de4eb9a264913822fd9, type: 3}
+  - title: rat
+    image: {fileID: -3578019587575532720, guid: fb4b2c555efe4f14cb6f515739e8cdb9, type: 3}
+  - title: shield berrier
+    image: {fileID: 7165429260230561404, guid: a92960a648bcaf744ab5ef032564f1cb, type: 3}
+  - title: wyrm
+    image: {fileID: 8788433452045232313, guid: 258bb38b873d8d342b107fde01fe2ccc, type: 3}
+  - title: archer
+    image: {fileID: 4116159343905876975, guid: 513783e16ce1dde4d88d74847e100384, type: 3}
+  - title: catapult
+    image: {fileID: -154139334052807852, guid: 4657a0336bacbad47b9ae7a46abbd78d, type: 3}
+  - title: javelin
+    image: {fileID: 1955742168755860186, guid: 02900abe8131a324e9ce461ec7e80869, type: 3}
+  - title: mage1
+    image: {fileID: 1219397821524989918, guid: c6c502381014b6c429b74c0f322f1cf3, type: 3}
+  - title: mage2
+    image: {fileID: 4299651415306444839, guid: 09619086e4b151b428ff09fb45818fad, type: 3}
+  - title: poison
+    image: {fileID: -5005990984189769374, guid: d82eb9186743dbd4680294198a45e6e8, type: 3}
+  - title: prism
+    image: {fileID: 4242166698998464641, guid: 1dbbe15dcda2152479157b14858a3b42, type: 3}
+  - title: stone2
+    image: {fileID: 1555695727865631640, guid: ae73f0c169f11ec49a407af2bd6f32be, type: 3}
+  - title: teleport
+    image: {fileID: -8753283788699527778, guid: 9f9488d8cf36ff84e925a5bb626d960a, type: 3}
+  - title: PvP_underdog
+    image: {fileID: -5459939330706321899, guid: 3f3087f6326427240b0b3e48f4721114, type: 3}
+  - title: Two Dragon
+    image: {fileID: 961091155182417750, guid: 5d85a926236fe5644bf89e1a4c82538c, type: 3}
+  - title: Icy
+    image: {fileID: 7161193909845757177, guid: dfa9778c8b6334942be4df92dfd59072, type: 3}
+  - title: Rune_purple
+    image: {fileID: 2263460582170228145, guid: 53b56998faf532243afcd4252e583939, type: 3}
+  - title: rune green
+    image: {fileID: 495503820658135327, guid: 6cf75e55a26ddaf4586e93e5d4d62b4c, type: 3}
+  - title: rune fire
+    image: {fileID: 2592740333189947140, guid: d3eaa44e3aefcd84cb7da1f63b155a17, type: 3}
+  - title: rune goblin
+    image: {fileID: 4751916748271124547, guid: 14254eeec1ac75445bc60102ec9ac7f3, type: 3}
+  - title: rune stun
+    image: {fileID: -2900312189968207865, guid: 319537bfabb1cb1409ef2e20015bf822, type: 3}
+  - title: rune war
+    image: {fileID: -7042053365200469702, guid: 0ca76e2067b237940ab8ace24d6a777b, type: 3}
+  - title: phoenix
+    image: {fileID: -4453784588268070965, guid: d63036aa357d67b4496931372b0c070a, type: 3}
+  - title: skill
+    image: {fileID: 7179335211229468482, guid: 75bb334cc2a2f9a43b827fc92d4543a4, type: 3}
+  - title: 1
+    image: {fileID: -855298285791758126, guid: a2f1390e7255c4b4ca038e98787bee70, type: 3}
+  - title: 2
+    image: {fileID: 6937817954938267909, guid: 193c5cb0d8c3a4f44bda711c4062f9ab, type: 3}
+  - title: 3
+    image: {fileID: -6470460504253458178, guid: 9d5ddc99722b4a543baab3c19f264738, type: 3}
+  - title: 4
+    image: {fileID: -4178046375966092550, guid: a87aa0ae32639c747aff54a6abbcfd93, type: 3}
+  - title: charms
+    image: {fileID: 3335064162627810215, guid: bac0d4367ae4b024c8006f884c8a48e7, type: 3}

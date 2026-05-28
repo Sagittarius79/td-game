@@ -57,11 +57,10 @@ public class DedicatedServerBootstrap : MonoBehaviour
     private const float IN_GAME_EMPTY_SHUTDOWN_DELAY = 20f;
 
     /// <summary>
-    /// Az első kliens csatlakozása után ennyi másodpercig vár a szerver
-    /// (hogy a többi kliens is csatlakozhasson), majd automatikusan indítja a játékot.
-    /// Csak akkor aktív, ha _manualStart == false.
+    /// Az első kliens csatlakozása után ennyi másodperccel automatikusan
+    /// elindítja a játékot (auto lobby módban), ha az elvárt játékosszám nem telt be.
     /// </summary>
-    private const float AUTO_START_GRACE = 5f;
+    private const float AUTO_START_GRACE = 20f;
 
     private float _emptyTimer        = 0f;
     private float _postGameTimer     = -1f;  // -1 = még nincs meccs vége
@@ -69,6 +68,12 @@ public class DedicatedServerBootstrap : MonoBehaviour
     private bool  _gameStarted       = false;
     private bool  _autoStartPending  = false;
     private bool  _shuttingDown      = false;
+
+    /// <summary>
+    /// Hány valódi klienst várunk (a -expectedPlayers parancssori arg alapján).
+    /// Ha mindenki megvan, a grace period lejárta előtt azonnal indul a meccs.
+    /// </summary>
+    private int _expectedPlayers = 0;
 
     void Start()
     {
@@ -98,9 +103,14 @@ public class DedicatedServerBootstrap : MonoBehaviour
             {
                 _manualStart = true;
             }
+            else if (args[i] == "-expectedPlayers" && i + 1 < args.Length)
+            {
+                if (int.TryParse(args[i + 1], out int ep))
+                    _expectedPlayers = ep;
+            }
         }
 
-        Debug.Log($"[Bootstrap] port={_assignedPort} | matchId={_matchId} | manualStart={_manualStart}");
+        Debug.Log($"[Bootstrap] port={_assignedPort} | matchId={_matchId} | manualStart={_manualStart} | expectedPlayers={_expectedPlayers}");
     }
 
     void StartDedicatedServer()
@@ -123,7 +133,7 @@ public class DedicatedServerBootstrap : MonoBehaviour
         else
         {
             // Auto-start mód (Auto Lobby): az első kliens csatlakozásától
-            // AUTO_START_GRACE másodperccel automatikusan elindul a játék.
+            // AUTO_START_GRACE másodperccel automatikusan elindítja a játékot.
             NetworkManager.Singleton.OnClientConnectedCallback += OnAnyClientConnected;
         }
 
@@ -144,9 +154,26 @@ public class DedicatedServerBootstrap : MonoBehaviour
         if (NetworkManager.Singleton != null &&
             clientId == NetworkManager.Singleton.LocalClientId) return;
 
-        if (_gameStarted || _autoStartPending) return;
+        if (_gameStarted) return;
+
+        // Ha mindenki megérkezett → azonnal indul, nem kell várni a grace periodet.
+        int realClients = NetworkManager.Singleton != null
+            ? Mathf.Max(0, NetworkManager.Singleton.ConnectedClients.Count - 1)
+            : 0;
+        if (_expectedPlayers > 0 && realClients >= _expectedPlayers)
+        {
+            if (_autoStartPending)
+                StopAllCoroutines(); // grace coroutine leállítása
+            _autoStartPending = true;
+            _gameStarted = true;
+            Debug.Log($"[Bootstrap] Minden várt játékos csatlakozott ({realClients}/{_expectedPlayers}) – azonnali indítás.");
+            NetworkGameManager.Instance?.TriggerGameStart();
+            return;
+        }
+
+        if (_autoStartPending) return;
         _autoStartPending = true;
-        Debug.Log($"[Bootstrap] Első kliens csatlakozott (id={clientId}) – {AUTO_START_GRACE}s grace periódus indul.");
+        Debug.Log($"[Bootstrap] Első kliens csatlakozott (id={clientId}) – {AUTO_START_GRACE}s grace indul (várt: {_expectedPlayers}).");
         StartCoroutine(AutoStartCoroutine());
     }
 
@@ -156,16 +183,11 @@ public class DedicatedServerBootstrap : MonoBehaviour
 
         if (_gameStarted) yield break;
 
-        int clients = NetworkManager.Singleton.ConnectedClients.Count - 1; // -1 = saját host
-        if (clients <= 0)
-        {
-            Debug.Log("[Bootstrap] Grace periódus lejárt – nincs kliens, grace reset.");
-            _autoStartPending = false;
-            yield break;
-        }
-
-        Debug.Log($"[Bootstrap] Auto indítás: {clients} kliens csatlakozva.");
+        int realClients = NetworkManager.Singleton != null
+            ? Mathf.Max(0, NetworkManager.Singleton.ConnectedClients.Count - 1)
+            : 0;
         _gameStarted = true;
+        Debug.Log($"[Bootstrap] Grace period lejárt – indítás {realClients} játékossal (várt: {_expectedPlayers}).");
         NetworkGameManager.Instance?.TriggerGameStart();
     }
 

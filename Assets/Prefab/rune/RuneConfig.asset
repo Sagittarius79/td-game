@@ -1,0 +1,55 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1323c1d7ea9de164e8252164628b3d4f, type: 3}
+  m_Name: RuneConfig
+  m_EditorClassIdentifier: Assembly-CSharp::RuneConfig
+  gyujtasRunePrefab: {fileID: 2394472842890599114, guid: 65439e999d3a8b54ab7e6787a674fcb5, type: 3}
+  gyujtasCollectSound: {fileID: 8300000, guid: 87df838daa45fd7479f836a0249f2b3a, type: 3}
+  gyujtasEsely: 0.5
+  gyujtasTalalatSebzes: 0
+  gyujtasDoTAlap: 1
+  gyujtasIdotartamAlap: 3
+  gyujtasDoTBonusz: 2
+  gyujtasIdotartamBonusz: 2
+  stunRunePrefab: {fileID: 2394472842890599114, guid: e4c70b2302414c249b7625387edfb0b0, type: 3}
+  stunCollectSound: {fileID: 8300000, guid: 737e997f0ff4d1d4986507bce291d183, type: 3}
+  stunVfxPrefab: {fileID: 0}
+  stunEselyAlap: 0.15
+  stunIdotartamAlap: 1
+  stunEselyBonusz: 0.05
+  stunIdotartamBonusz: 0.1
+  multiShotRunePrefab: {fileID: 2394472842890599114, guid: 80b7eac53a544ac4991246e570dcc8ea, type: 3}
+  multiShotCollectSound: {fileID: 8300000, guid: c2ec583e83005d04c9777aa89176a55c, type: 3}
+  multiShotEsely: 0.5
+  multiShotMennyisegAlap: 1
+  multiShotMennyisegBonusz: 1
+  pattanasRunePrefab: {fileID: 0}
+  pattanasCollectSound: {fileID: 0}
+  pattanasEselyAlap: 20
+  pattanasMaxEsely: 80
+  pattanasSzamAlap: 1
+  pattanasArmorBonusz: 5
+  pattanasSugar: 4
+  pattanasSzamBonusz: 1
+  pattanasEselyBonusz: 10
+  sendDiscountRunePrefab: {fileID: 2394472842890599114, guid: d457e93b1e6177b4b95fd8731d422a29, type: 3}
+  sendDiscountCollectSound: {fileID: 8300000, guid: 5cf682b93c75e0242b931cea6e04155c, type: 3}
+  sendDiscountPerStack: 0.2
+  sendDiscountMax: 0.8
+  meregRunePrefab: {fileID: 2394472842890599114, guid: e404d46c5eab9e44f985108e318653bd, type: 3}
+  meregCollectSound: {fileID: 8300000, guid: 7c86960d33f83d147a4793d0b327668d, type: 3}
+  meregEsely: 0.5
+  meregDoTAlap: 2
+  meregIdotartamAlap: 2
+  meregMaxStackAlap: 0
+  meregDoTBonusz: 2
+  meregStackBonusz: 1

@@ -82,6 +82,10 @@ public class Projectile : MonoBehaviour
     public float moveSpeed = 8f;
     [Tooltip("Ennyi másodperc után megsemmisül célpont nélkül")]
     public float maxLifetime = 5f;
+    [Tooltip("Íves repülés: az út feléig nagyobbodik, onnan a célig kisebbedik (pl. Poison.prefab)")]
+    public bool arcScaleFlight = false;
+    [Tooltip("Az íves repülés csúcsmérete (2 = kétszeres az út felénél)")]
+    public float arcScaleMax = 2f;
 
     [Header("Hatás")]
     [Tooltip("Becsapódáskor spawnolt effekt prefab (pl. AOE robbanás animáció)")]
@@ -126,6 +130,28 @@ public class Projectile : MonoBehaviour
     public float burnAOERadius = 1.5f;
     [Tooltip("Opcionális tűz VFX prefab – a BurningEffect spawnolhatja az ellenségen")]
     public GameObject burnVfxPrefab;
+
+    [Header("Two Dragon Burn")]
+    [Tooltip("Egyszerre maximum ennyi BurningEffect lehet egy célponton (Two Dragon skill növeli)")]
+    [Min(1)]
+    public int twoDragonBurnMaxDoT = 1;
+    [Tooltip("Ha be van kapcsolva, az égés átterjedhet a közeli ellenségekre")]
+    public bool twoDragonBurnSpread = false;
+    [Tooltip("Terjedési sugár (world egységben)")]
+    [Min(0f)]
+    public float twoDragonBurnSpreadRadius = 1.5f;
+    [Tooltip("Terjedési esély (0–1)")]
+    [Range(0f, 1f)]
+    public float twoDragonBurnSpreadChance = 0.5f;
+    [Tooltip("Hány generációnyit terjed (0 = csak az eredeti terjed)")]
+    [Min(0)]
+    public int twoDragonBurnSpreadGeneration = 0;
+    [Tooltip("Skill bónusz: DoT sebzés növelése mp-enként (TwoDragonDotDmg skill adja hozzá)")]
+    [Min(0f)]
+    public float twoDragonBurnDmgBonus = 0f;
+    [Tooltip("Skill bónusz: DoT időtartam növelése másodpercben (TwoDragonDotTime skill adja hozzá)")]
+    [Min(0f)]
+    public float twoDragonBurnDurationBonus = 0f;
 
     // ─────────────────────────────────────────────────────────────
     //  LVL 1 – Standard_ArcherSkillTree | Standard_StoneSkillTree
@@ -175,6 +201,31 @@ public class Projectile : MonoBehaviour
     [Tooltip("Ha be van kapcsolva, a ChargeDamageBonus skill érvényes erre a lövedékre (minél tovább nem lőtt, annál nagyobb az első lövés)")]
     public bool stoneChargeDmgBonus = false;
 
+    // ─────────────────────────────────────────────────────────────
+    //  CHARM – melyik charm hatások alkalmazhatók erre a lövedékre
+    // ─────────────────────────────────────────────────────────────
+    [Header("Charm")]
+    [Tooltip("'CritChanceStoneBonus' charm – a közvetlen találat crit esélyéhez ad (Stone1, Stone2)")]
+    public bool eligibleForStoneCritCharm = false;
+    [Tooltip("'AOECritChanceBonus' charm – a splash (AOE) sebzés crit-elhet (Stone1, Stone2)")]
+    public bool eligibleForAOECritCharm = false;
+    [Tooltip("'StoneStunChance' charm – a közvetlen találat elkábíthatja a célpontot (Stone)")]
+    public bool eligibleForStoneStunCharm = false;
+    [Tooltip("'LaserArmorStripChance' charm – minden találatnál dob páncél-leszedésre (Laser)")]
+    public bool eligibleForLaserArmorStripCharm = false;
+    [Tooltip("'JavelinBurnChance' charm – burn effektet rak (Javelin). A burn paraméterek a fenti 'Égés' mezőkből jönnek.")]
+    public bool eligibleForBurnCharm = false;
+    [Tooltip("'PoisonBounceChance' charm – a méreg átpattan a legközelebbi ellenfélre (Poison)")]
+    public bool eligibleForPoisonBounceCharm = false;
+    [Tooltip("A bounce-kor kilőtt látható lövedék prefab (a Poison.prefab). Az eredeti sebesség felével megy.")]
+    public GameObject poisonBounceProjectilePrefab;
+    [Tooltip("'TeleportHalveHpChance' charm – teleportáláskor megfelezi a szörny HP-ját (Teleport)")]
+    public bool eligibleForTeleportHalveCharm = false;
+    [Tooltip("'TurulExtraBirdChance' charm – +1 aktív madarat enged a Turul toronynak (Turul)")]
+    public bool eligibleForTurulExtraBirdCharm = false;
+    [Tooltip("'InstantKillChanceMagic' charm – a közvetlen találat % eséllyel azonnal megöli a célpontot (Magic_Lvl1, Magic_Lvl2)")]
+    public bool eligibleForInstantKillCharm = false;
+
     // ══════════════════════════════════════════════════════
     //  BELSŐ ÁLLAPOT – Tower.Shoot() tölti fel Initialize()-kor
     // ══════════════════════════════════════════════════════
@@ -198,6 +249,27 @@ public class Projectile : MonoBehaviour
 
     private bool hasHit = false;
     private float lifetimeTimer = 0f;
+
+    // ── Íves repülés skálázás (bounce poison) ─────────────
+    private bool    _arcScale;
+    private float   _arcStartDist;
+    private Vector3 _arcBaseScale = Vector3.one;
+    private float   _arcMaxMul = 2f;
+
+    /// <summary>
+    /// Bekapcsolja az íves repülés szimulációt: a lövedék az út feléig
+    /// maxMultiplier-szeresére nagyobbodik, majd a célpontig visszakisebbedik.
+    /// Initialize() UTÁN hívd (kell a target a távolsághoz).
+    /// </summary>
+    public void EnableArcScale(float maxMultiplier = 2f)
+    {
+        _arcScale     = true;
+        _arcMaxMul    = maxMultiplier;
+        _arcBaseScale = transform.localScale;
+        _arcStartDist = target != null
+            ? Vector3.Distance(transform.position, target.transform.position)
+            : 0f;
+    }
 
     // ── Repeat állapot ────────────────────────────────────
     private int     _repeatRemaining  = 0;
@@ -245,6 +317,10 @@ public class Projectile : MonoBehaviour
         this.armorPierce  = armorPierce;
         this.stunChance   = stunChance;
         this.trapChance   = trapChance;
+
+        // Íves repülés (ha a prefabon be van kapcsolva)
+        if (arcScaleFlight)
+            EnableArcScale(arcScaleMax);
     }
 
     // ══════════════════════════════════════════════════════
@@ -283,6 +359,14 @@ public class Projectile : MonoBehaviour
         // Forgás a célpont felé
         if (dir != Vector3.zero)
             transform.up = dir.normalized;
+
+        // Íves repülés szimuláció: az út feléig nő, onnan a célig kisebbedik
+        if (_arcScale && _arcStartDist > 0.01f)
+        {
+            float progress = Mathf.Clamp01(1f - dir.magnitude / _arcStartDist);
+            float mul = 1f + (_arcMaxMul - 1f) * Mathf.Sin(progress * Mathf.PI);
+            transform.localScale = _arcBaseScale * mul;
+        }
 
         if (dir.magnitude <= step)
         {
@@ -339,6 +423,14 @@ public class Projectile : MonoBehaviour
         Vector3 dir = transform.position - prev;
         if (dir != Vector3.zero)
             transform.up = dir.normalized;
+
+        // Íves repülés skálázás: az ív csúcsán (t=0.5, legtávolabb) legnagyobb,
+        // a célponton (t=0 és t=1, lecsapás) legkisebb.
+        if (_arcScale)
+        {
+            float mul = 1f + (_arcMaxMul - 1f) * Mathf.Sin(t * Mathf.PI);
+            transform.localScale = _arcBaseScale * mul;
+        }
 
         if (_arcTimer >= Mathf.Max(_arcDuration, REPEAT_MIN_INTERVAL))
         {
@@ -415,16 +507,20 @@ public class Projectile : MonoBehaviour
             // Közvetlen találat → damage
             if (target != null && !target.IsDead && !IsImmune(target))
             {
-                bool  isCrit      = critChance > 0f && Random.value < critChance;
+                bool  isCrit      = RollDirectCrit();
                 float finalDamage = isCrit ? damage * (critDamagePercent / 100f) : damage;
                 if (canDestroyArmor && armorPierce > 0f) target.ReduceArmor(armorPierce);
+                TryApplyInstantKill(target);
+                TryApplyLaserArmorStrip(target);
+                TryApplyStoneStun(target);
+                TryApplyBurnCharm(target);
                 if (canStun && stunChance > 0f && Random.value < stunChance) { target.ApplyStun(stunDuration); ShowStunText(target); }
                 target.TakeDamage(finalDamage, damageType, isCrit);
                 if (magicDamage > 0f) target.TakeDamage(magicDamage, DamageType.Magic);
                 ApplyBurning(target);
                 ApplyPoison(target);
                 GetComponent<altalanos_fejlesztesek>()?.OnHit(target);
-                if (teleportOnHit) target.TeleportToStart();
+                if (teleportOnHit) { TryApplyTeleportHalve(target); target.TeleportToStart(); }
             }
             // Körülötte lévők → aoeDamage (közvetlen célpont kihagyva)
             ApplyAreaDamage(aoeDamage, target);
@@ -432,19 +528,23 @@ public class Projectile : MonoBehaviour
         else if (isAreaDamage)
         {
             // Közvetlen találat crit-elhet, a splash ellenségek alap sebzést kapnak
-            bool  isCrit      = critChance > 0f && Random.value < critChance;
+            bool  isCrit      = RollDirectCrit();
             float finalDamage = isCrit ? damage * (critDamagePercent / 100f) : damage;
 
             if (target != null && !target.IsDead && !IsImmune(target))
             {
                 if (canDestroyArmor && armorPierce > 0f) target.ReduceArmor(armorPierce);
+                TryApplyInstantKill(target);
+                TryApplyLaserArmorStrip(target);
+                TryApplyStoneStun(target);
+                TryApplyBurnCharm(target);
                 if (canStun && stunChance > 0f && Random.value < stunChance) { target.ApplyStun(stunDuration); ShowStunText(target); }
                 target.TakeDamage(finalDamage, damageType, isCrit);
                 if (magicDamage > 0f) target.TakeDamage(magicDamage, DamageType.Magic);
                 ApplyBurning(target);
                 ApplyPoison(target);
                 GetComponent<altalanos_fejlesztesek>()?.OnHit(target);
-                if (teleportOnHit) target.TeleportToStart();
+                if (teleportOnHit) { TryApplyTeleportHalve(target); target.TeleportToStart(); }
             }
             // Splash ellenségek – közvetlen célpont kizárva, alap damage
             ApplyAreaDamage(damage, target);
@@ -460,12 +560,16 @@ public class Projectile : MonoBehaviour
             }
             else
             {
-                isCrit      = critChance > 0f && Random.value < critChance;
+                isCrit      = RollDirectCrit();
                 finalDamage = isCrit ? damage * (critDamagePercent / 100f) : damage;
             }
 
             if (canDestroyArmor && armorPierce > 0f)
                 target.ReduceArmor(armorPierce);
+            TryApplyInstantKill(target);
+            TryApplyLaserArmorStrip(target);
+            TryApplyStoneStun(target);
+            TryApplyBurnCharm(target);
 
             if (canStun && stunChance > 0f && Random.value < stunChance) { target.ApplyStun(stunDuration); ShowStunText(target); }
 
@@ -478,7 +582,10 @@ public class Projectile : MonoBehaviour
             GetComponent<altalanos_fejlesztesek>()?.OnHit(target);
 
             if (teleportOnHit)
+            {
+                TryApplyTeleportHalve(target);
                 target.TeleportToStart();
+            }
 
             if (canPlaceTrap && trapPrefab != null && trapChance > 0f && Random.value < trapChance)
             {
@@ -627,13 +734,19 @@ public class Projectile : MonoBehaviour
 
     private void ApplyBurnToEnemy(Enemy enemy)
     {
-        var existing = enemy.GetComponent<BurningEffect>();
-        if (existing != null)
-            existing.Refresh(burnDamagePerSecond, burnDuration);
+        float effectiveDmg      = burnDamagePerSecond + twoDragonBurnDmgBonus;
+        float effectiveDuration = burnDuration        + twoDragonBurnDurationBonus;
+
+        var actives = enemy.GetComponents<BurningEffect>();
+        if (actives.Length >= twoDragonBurnMaxDoT)
+        {
+            actives[0].Refresh(effectiveDmg, effectiveDuration);
+        }
         else
         {
             var burn = enemy.gameObject.AddComponent<BurningEffect>();
-            burn.Initialize(burnDamagePerSecond, burnDuration, burnVfxPrefab);
+            burn.Initialize(effectiveDmg, effectiveDuration, burnVfxPrefab,
+                twoDragonBurnSpread, twoDragonBurnSpreadRadius, twoDragonBurnSpreadChance, twoDragonBurnSpreadGeneration);
         }
     }
 
@@ -717,19 +830,184 @@ public class Projectile : MonoBehaviour
         if (!applyPoison) return;
         if (directTarget == null || directTarget.IsDead) return;
 
-        var existing = directTarget.GetComponent<PoisonEffect>();
+        ApplyPoisonToEnemy(directTarget);
+
+        // Charm: PoisonBounceChance – méreg átpattanása a szomszédra
+        TryApplyPoisonBounce(directTarget);
+    }
+
+    void ApplyPoisonToEnemy(Enemy enemy)
+    {
+        if (enemy == null || enemy.IsDead) return;
+
+        var existing = enemy.GetComponent<PoisonEffect>();
         if (existing != null)
             existing.AddStack(poisonDamagePerSecond, poisonDuration, maxPoisonStacks);
         else
         {
-            var poison = directTarget.gameObject.AddComponent<PoisonEffect>();
+            var poison = enemy.gameObject.AddComponent<PoisonEffect>();
             poison.Initialize(poisonDamagePerSecond, poisonDuration, maxPoisonStacks, poisonVfxPrefab);
+        }
+    }
+
+    /// <summary>
+    /// Közvetlen találat crit dobása: projektil crit + Stone crit charm (ha jogosult).
+    /// </summary>
+    bool RollDirectCrit()
+    {
+        float c = critChance;
+        if (eligibleForStoneCritCharm)
+            c += CharmEffects.GetEquippedTotal(CharmEffectType.CritChanceStoneBonus) / 100f;
+        return c > 0f && Random.value < c;
+    }
+
+    /// <summary>
+    /// Charm: InstantKillChanceMagic – ha a projectile jogosult, % eséllyel azonnal megöli
+    /// a közvetlen célpontot. True ha megölte.
+    /// </summary>
+    bool TryApplyInstantKill(Enemy target)
+    {
+        if (!eligibleForInstantKillCharm || target == null || target.IsDead) return false;
+        if (CharmEffects.RollPercentChance(CharmEffectType.InstantKillChanceMagic))
+        {
+            target.InstantKill();
+            CharmEffects.PlayEffectSound(CharmEffectType.InstantKillChanceMagic);
+            return true;
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// Charm: TeleportHalveHpChance – ha a projectile jogosult, % eséllyel megfelezi
+    /// a teleportált szörny HP-ját.
+    /// </summary>
+    void TryApplyTeleportHalve(Enemy target)
+    {
+        if (!eligibleForTeleportHalveCharm || target == null || target.IsDead) return;
+        float chance = CharmEffects.GetEquippedTotal(CharmEffectType.TeleportHalveHpChance) / 100f;
+        if (chance > 0f && Random.value < chance)
+        {
+            target.HalveHealth();
+            CharmEffects.PlayEffectSound(CharmEffectType.TeleportHalveHpChance);
+        }
+    }
+
+    /// <summary>
+    /// Charm: PoisonBounceChance – ha a projectile jogosult, % eséllyel a legközelebbi
+    /// (max 1.5 tile-on belüli) másik ellenfélre is felrakja a mérget.
+    /// </summary>
+    void TryApplyPoisonBounce(Enemy directTarget)
+    {
+        if (!eligibleForPoisonBounceCharm || directTarget == null) return;
+
+        float chance = CharmEffects.GetEquippedTotal(CharmEffectType.PoisonBounceChance) / 100f;
+        if (chance <= 0f || Random.value >= chance) return;
+
+        // Max pattanási távolság: 1.5 tile
+        float worldRadius = 1.5f * (GridManager.Instance != null
+            ? (GridManager.Instance.tileWidth + GridManager.Instance.tileHeight) * 0.5f
+            : 1f);
+
+        Enemy[] enemies = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
+        Enemy nearest = null;
+        float nearestDist = float.MaxValue;
+
+        foreach (var e in enemies)
+        {
+            if (e == null || e.IsDead || e == directTarget) continue;
+            float dist = Vector3.Distance(directTarget.transform.position, e.transform.position);
+            if (dist <= worldRadius && dist < nearestDist)
+            {
+                nearestDist = dist;
+                nearest = e;
+            }
+        }
+
+        if (nearest != null)
+        {
+            // Látható átpattanó lövedék (1/5 sebességgel), ami a méreggel hat
+            if (poisonBounceProjectilePrefab != null)
+            {
+                var go = Instantiate(poisonBounceProjectilePrefab, transform.position, Quaternion.identity);
+                var p  = go.GetComponent<Projectile>();
+                if (p != null)
+                {
+                    p.moveSpeed                    = moveSpeed * 0.5f;  // fél sebesség
+                    p.eligibleForPoisonBounceCharm = false;            // ne pattanjon tovább (végtelen lánc ellen)
+                    p.applyPoison                  = true;
+                    p.poisonDamagePerSecond        = poisonDamagePerSecond;
+                    p.poisonDuration               = poisonDuration;
+                    p.maxPoisonStacks              = maxPoisonStacks;
+                    p.poisonVfxPrefab              = poisonVfxPrefab;
+                    // damage 0 → csak a méreg hat, nincs közvetlen sebzés
+                    // (az íves repülést az Initialize automatikusan bekapcsolja, ha a prefabon be van állítva)
+                    p.Initialize(nearest, 0f, false, 0f, damageType);
+                }
+                else Destroy(go);
+            }
+            else
+            {
+                // Fallback: ha nincs prefab beállítva, azonnali méreg (lövedék nélkül)
+                ApplyPoisonToEnemy(nearest);
+            }
+
+            CharmEffects.PlayEffectSound(CharmEffectType.PoisonBounceChance);
+        }
+    }
+
+    /// <summary>
+    /// Charm: LaserArmorStripChance – ha a projectile jogosult, % eséllyel -1 páncél.
+    /// </summary>
+    void TryApplyLaserArmorStrip(Enemy target)
+    {
+        if (!eligibleForLaserArmorStripCharm || target == null) return;
+        float chance = CharmEffects.GetEquippedTotal(CharmEffectType.LaserArmorStripChance) / 100f;
+        if (chance > 0f && Random.value < chance)
+        {
+            target.ReduceArmor(1f);
+            CharmEffects.PlayEffectSound(CharmEffectType.LaserArmorStripChance);
+        }
+    }
+
+    /// <summary>
+    /// Charm: StoneStunChance – ha a projectile jogosult, % eséllyel elkábítja az eltalált ellenfelet.
+    /// Csak a közvetlen célpontra hat, nem AOE.
+    /// </summary>
+    void TryApplyStoneStun(Enemy target)
+    {
+        if (!eligibleForStoneStunCharm || target == null || target.IsDead) return;
+        float chance = CharmEffects.GetEquippedTotal(CharmEffectType.StoneStunChance) / 100f;
+        if (chance > 0f && Random.value < chance)
+        {
+            target.ApplyStun(stunDuration);
+            ShowStunText(target);
+            CharmEffects.PlayEffectSound(CharmEffectType.StoneStunChance);
+        }
+    }
+
+    /// <summary>
+    /// Charm: JavelinBurnChance – ha a projectile jogosult, % eséllyel burn effektet rak az eltalált ellenfélre.
+    /// A burn paramétereket (dps, duration, vfx) a projectile 'Égés' mezői adják.
+    /// </summary>
+    void TryApplyBurnCharm(Enemy target)
+    {
+        if (!eligibleForBurnCharm || target == null || target.IsDead) return;
+        float chance = CharmEffects.GetEquippedTotal(CharmEffectType.JavelinBurnChance) / 100f;
+        if (chance > 0f && Random.value < chance)
+        {
+            ApplyBurnToEnemy(target);
+            CharmEffects.PlayEffectSound(CharmEffectType.JavelinBurnChance);
         }
     }
 
     void ApplyAreaDamage(float dmgAmount, Enemy excludeTarget)
     {
         float worldRadius = areaRadius * (GridManager.Instance.tileWidth + GridManager.Instance.tileHeight) * 0.5f;
+
+        // Charm: AOE Crit Chance – csak ha a lövedék jogosult rá (pl. Stone1, Stone2 prefab)
+        float aoeCritChance = eligibleForAOECritCharm
+            ? CharmEffects.GetEquippedTotal(CharmEffectType.AOECritChanceBonus) / 100f
+            : 0f;
 
         Enemy[] enemies = FindObjectsByType<Enemy>(FindObjectsSortMode.None);
 
@@ -740,7 +1018,11 @@ public class Projectile : MonoBehaviour
             float dist = Vector3.Distance(transform.position, enemy.transform.position);
             if (dist > worldRadius) continue;
             if (IsImmune(enemy)) continue;
-            enemy.TakeDamage(dmgAmount, damageType);
+
+            bool  isCrit   = aoeCritChance > 0f && Random.value < aoeCritChance;
+            float finalDmg = isCrit ? dmgAmount * (critDamagePercent / 100f) : dmgAmount;
+            enemy.TakeDamage(finalDmg, damageType, isCrit);
+
             if (teleportOnHit)
                 enemy.TeleportToStart();
         }

@@ -20,17 +20,10 @@ public class altalanos_fejlesztesek : MonoBehaviour
     [Tooltip("Ha be van kapcsolva, a találat égést okoz a célponton")]
     public bool gyujtas = false;
 
-    [Tooltip("Közvetlen találati tűzsebzés (egyszer, azonnal)")]
-    public float gyutasTalalatSebzes = 0f;
-
-    [Tooltip("Tűz DoT sebzés másodpercenként (BurningEffect)")]
-    public float gyutasDoTSebzesMpenkent = 5f;
-
-    [Tooltip("Égés időtartama másodpercben")]
-    public float gyutasIdotartam = 3f;
-
-    [Tooltip("Tűz VFX prefab – opcionális, az ellenségen jelenik meg égés közben")]
-    public GameObject gyutasVfxPrefab;
+    [HideInInspector] public float gyujtasEsely = 1f;
+    [HideInInspector] public float gyutasTalalatSebzes = 0f;
+    [HideInInspector] public float gyutasDoTSebzesMpenkent = 5f;
+    [HideInInspector] public float gyutasIdotartam = 3f;
 
     // ══════════════════════════════════════════════════════════════
     //  STUN
@@ -40,12 +33,9 @@ public class altalanos_fejlesztesek : MonoBehaviour
     [Tooltip("Ha be van kapcsolva, a találat stunolja a célpontot (esély alapján)")]
     public bool stun = false;
 
-    [Tooltip("Stun bekövetkezésének esélye (0–1, pl. 0.25 = 25%)")]
-    [Range(0f, 1f)]
-    public float stunEsely = 0.25f;
-
-    [Tooltip("Stun időtartama másodpercben")]
-    public float stunIdotartam = 1.5f;
+    [HideInInspector] public float stunEsely = 0.25f;
+    [HideInInspector] public float stunIdotartam = 1.5f;
+    [HideInInspector] public GameObject stunEffectPrefab;
 
     // ══════════════════════════════════════════════════════════════
     //  MULTI SHOT
@@ -55,15 +45,14 @@ public class altalanos_fejlesztesek : MonoBehaviour
     [Tooltip("Ha be van kapcsolva, egyszerre több lövedék indul")]
     public bool multiShot = false;
 
-    [Tooltip("Hány lövedék induljon összesen (1 = alap, 2 = dupla, stb.)")]
-    [Min(1)]
-    public int multiShotMennyiseg = 2;
-
     [Tooltip("Extra lövedékek különböző célpontokra menjenek (ha van elég élő ellenség a közelben)")]
     public bool multiShotKulonbozoCelpont = true;
 
     [Tooltip("Keresési sugár az extra célpontokhoz (tile egységben)")]
     public float multiShotKeresesiSugar = 5f;
+
+    [HideInInspector] public float multiShotEsely = 1f;
+    [HideInInspector] public int multiShotMennyiseg = 2;
 
     // ══════════════════════════════════════════════════════════════
     //  PATTANÁS (Bounce)
@@ -73,38 +62,32 @@ public class altalanos_fejlesztesek : MonoBehaviour
     [Tooltip("Ha be van kapcsolva, a lövedék találat után pattanhat egy másik ellenségre")]
     public bool pattanas = false;
 
-    [Tooltip("Alap pattanási esély százalékban (0–100)")]
-    [Range(0f, 100f)]
-    public float pattanasAlapEsely = 20f;
-
-    [Tooltip("Minden egyes armor pont ennyivel növeli a pattanási esélyt (%)")]
-    public float pattanasArmorBonusz = 5f;
-
-    [Tooltip("Maximum pattanási esély százalékban")]
-    [Range(0f, 100f)]
-    public float pattanasMaxEsely = 80f;
-
-    [Tooltip("Hányszor pattanhat összesen a lövedék")]
-    [Min(1)]
-    public int pattanasMaxSzam = 1;
-
-    [Tooltip("Keresési sugár a pattanási célponthoz (tile egységben)")]
-    public float pattanasSugar = 4f;
+    [HideInInspector] public float pattanasAlapEsely = 20f;
+    [HideInInspector] public float pattanasArmorBonusz = 5f;
+    [HideInInspector] public float pattanasMaxEsely = 80f;
+    [HideInInspector] public int pattanasMaxSzam = 1;
+    [HideInInspector] public float pattanasSugar = 4f;
 
     // belső: hány pattanás maradt még
     [HideInInspector] public int _pattanasMaradt = -1;
+
+    [Header("── Rúna konfiguráció ────────────────────────")]
+    [Tooltip("Egyszer beállított asset – minden prefabra ugyanazt húzd rá")]
+    public RuneConfig runeConfig;
 
     // ── belső hivatkozás ──────────────────────────────────────────
     private Projectile _projectile;
     private bool _isExtraProjectile = false;  // megakadályozza a végtelen rekurziót
     private Vector3 _towerPosition;
     private float   _towerRange = -1f;        // -1 = nincs beállítva
+    private Tower   _tower;
 
     /// <summary>Tower.Shoot() hívja közvetlenül spawnolás után.</summary>
-    public void SetTowerData(Vector3 towerPosition, float towerRange)
+    public void SetTowerData(Vector3 towerPosition, float towerRange, Tower tower = null)
     {
         _towerPosition = towerPosition;
         _towerRange    = towerRange;
+        _tower         = tower;
     }
 
     // ══════════════════════════════════════════════════════════════
@@ -135,10 +118,13 @@ public class altalanos_fejlesztesek : MonoBehaviour
             {
                 _towerPosition = closest.transform.position;
                 _towerRange    = closest.attackRange;
+                _tower         = closest;
             }
         }
 
-        if (multiShot && !_isExtraProjectile)
+        ApplyRuneBuffs();
+
+        if (multiShot && !_isExtraProjectile && (multiShotEsely >= 1f || Random.value <= multiShotEsely))
             SpawnExtraProjectiles();
     }
 
@@ -230,23 +216,17 @@ public class altalanos_fejlesztesek : MonoBehaviour
     [Tooltip("Ha be van kapcsolva, a találat mérgezi a célpontot")]
     public bool mereg = false;
 
-    [Tooltip("Méreg sebzés másodpercenként (PoisonEffect)")]
-    public float meregSebzesMpenkent = 3f;
-
-    [Tooltip("Egy stack időtartama másodpercben")]
-    public float meregIdotartam = 4f;
-
-    [Tooltip("Maximum egyszerre aktív stack-ek száma")]
-    public int meregMaxStack = 5;
-
-    [Tooltip("Méreg VFX prefab – opcionális, az ellenségen jelenik meg mérgezés közben")]
-    public GameObject meregVfxPrefab;
+    [HideInInspector] public float meregEsely = 1f;
+    [HideInInspector] public float meregSebzesMpenkent = 3f;
+    [HideInInspector] public float meregIdotartam = 4f;
+    [HideInInspector] public int meregMaxStack = 5;
 
     // ── Méreg ─────────────────────────────────────────────────────
 
     void ApplyMereg(Enemy target)
     {
         if (!mereg) return;
+        if (meregEsely < 1f && Random.value > meregEsely) return;
 
         var existing = target.GetComponent<PoisonEffect>();
         if (existing != null)
@@ -254,7 +234,7 @@ public class altalanos_fejlesztesek : MonoBehaviour
         else
         {
             var poison = target.gameObject.AddComponent<PoisonEffect>();
-            poison.Initialize(meregSebzesMpenkent, meregIdotartam, meregMaxStack, meregVfxPrefab);
+            poison.Initialize(meregSebzesMpenkent, meregIdotartam, meregMaxStack, target.poisonVfxPrefab);
         }
     }
 
@@ -264,6 +244,9 @@ public class altalanos_fejlesztesek : MonoBehaviour
     {
         if (!stun) return;
         if (Random.value > stunEsely) return;
+
+        if (stunEffectPrefab != null)
+            target.stunEffectPrefab = stunEffectPrefab;
 
         target.ApplyStun(stunIdotartam);
 
@@ -324,11 +307,88 @@ public class altalanos_fejlesztesek : MonoBehaviour
             bounceTarget.TakeDamage(_projectile.damage, _projectile.damageType);
     }
 
+    // ── Rúna buffok alkalmazása ───────────────────────────────────
+
+    void ApplyRuneBuffs()
+    {
+        if (runeConfig == null) return;
+
+        // ── Alap értékek felülírása RuneConfig-ból ────────────────
+        gyujtasEsely            = runeConfig.gyujtasEsely;
+        gyutasTalalatSebzes     = runeConfig.gyujtasTalalatSebzes;
+        gyutasDoTSebzesMpenkent = runeConfig.gyujtasDoTAlap;
+        gyutasIdotartam         = runeConfig.gyujtasIdotartamAlap;
+
+        stunEsely               = runeConfig.stunEselyAlap;
+        stunIdotartam           = runeConfig.stunIdotartamAlap;
+        if (runeConfig.stunVfxPrefab != null)
+            stunEffectPrefab    = runeConfig.stunVfxPrefab;
+
+        multiShotEsely          = runeConfig.multiShotEsely;
+        multiShotMennyiseg      = runeConfig.multiShotMennyisegAlap;
+
+        pattanasAlapEsely       = runeConfig.pattanasEselyAlap;
+        pattanasMaxEsely        = runeConfig.pattanasMaxEsely;
+        pattanasMaxSzam         = runeConfig.pattanasSzamAlap;
+        pattanasArmorBonusz     = runeConfig.pattanasArmorBonusz;
+        pattanasSugar           = runeConfig.pattanasSugar;
+
+        meregEsely              = runeConfig.meregEsely;
+        meregSebzesMpenkent     = runeConfig.meregDoTAlap;
+        meregIdotartam          = runeConfig.meregIdotartamAlap;
+        meregMaxStack           = runeConfig.meregMaxStackAlap;
+
+        if (_tower == null) return;
+
+        // ── Stack bónuszok hozzáadása (csak a torony saját stackjei) ──
+        int s;
+
+        s = _tower.GetRuneStack(runeConfig.gyujtasRunePrefab);
+        if (s > 0)
+        {
+            gyujtas                  = true;
+            gyutasDoTSebzesMpenkent += runeConfig.gyujtasDoTBonusz * s;
+            gyutasIdotartam         += runeConfig.gyujtasIdotartamBonusz * s;
+        }
+
+        s = _tower.GetRuneStack(runeConfig.stunRunePrefab);
+        if (s > 0)
+        {
+            stun          = true;
+            stunEsely     = Mathf.Min(1f, stunEsely + runeConfig.stunEselyBonusz * s);
+            stunIdotartam += runeConfig.stunIdotartamBonusz * s;
+        }
+
+        s = _tower.GetRuneStack(runeConfig.multiShotRunePrefab);
+        if (s > 0)
+        {
+            multiShot          = true;
+            multiShotMennyiseg += runeConfig.multiShotMennyisegBonusz * s;
+        }
+
+        s = _tower.GetRuneStack(runeConfig.pattanasRunePrefab);
+        if (s > 0)
+        {
+            pattanas          = true;
+            pattanasMaxSzam   += runeConfig.pattanasSzamBonusz * s;
+            pattanasAlapEsely  = Mathf.Min(pattanasMaxEsely, pattanasAlapEsely + runeConfig.pattanasEselyBonusz * s);
+        }
+
+        s = _tower.GetRuneStack(runeConfig.meregRunePrefab);
+        if (s > 0)
+        {
+            mereg                = true;
+            meregSebzesMpenkent += runeConfig.meregDoTBonusz * s;
+            meregMaxStack       += runeConfig.meregStackBonusz * s;
+        }
+    }
+
     // ── Gyújtás ───────────────────────────────────────────────────
 
     void ApplyGyujtas(Enemy target)
     {
         if (!gyujtas) return;
+        if (gyujtasEsely < 1f && Random.value > gyujtasEsely) return;
 
         // Közvetlen találati tűzsebzés
         if (gyutasTalalatSebzes > 0f)
@@ -343,7 +403,7 @@ public class altalanos_fejlesztesek : MonoBehaviour
             else
             {
                 var burn = target.gameObject.AddComponent<BurningEffect>();
-                burn.Initialize(gyutasDoTSebzesMpenkent, gyutasIdotartam, gyutasVfxPrefab);
+                burn.Initialize(gyutasDoTSebzesMpenkent, gyutasIdotartam, target.fireVfxPrefab);
             }
         }
     }

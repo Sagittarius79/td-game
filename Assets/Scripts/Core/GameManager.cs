@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -17,6 +18,11 @@ public class GameManager : MonoBehaviour
     private bool isGameOver = false;
     private bool isVictory = false;
     private float _gameStartTime = 0f;
+
+    // Kill statisztika – szörny típusonként megszámolt ölések + ikon
+    public struct KillEntry { public int count; public UnityEngine.Sprite icon; }
+    private readonly Dictionary<string, KillEntry> _killCounts = new Dictionary<string, KillEntry>();
+    public IReadOnlyDictionary<string, KillEntry> KillCounts => _killCounts;
 
     // Töredék arany felhalmozó – PvP küldött szörny túlélési jutalom (0.1g/s)
     private float _pendingGold = 0f;
@@ -64,6 +70,15 @@ public class GameManager : MonoBehaviour
     {
         _gameStartTime = Time.realtimeSinceStartup;
         SetGold(startingGold);
+
+        // PvP szint-kompenzáció: ha az ellenfél magasabb szintű,
+        // a különbség / 10 arányban extra gold jár
+        int lvlBonus = NetworkGameManager.Instance?.LevelGoldBonus ?? 0;
+        if (lvlBonus > 0)
+        {
+            AddGold(lvlBonus);
+            Debug.Log($"[GM] Szint-kompenzáció alkalmazva: +{lvlBonus}g");
+        }
     }
 
     // ── Arany kezelés ──────────────────────────────────────────────
@@ -81,6 +96,13 @@ public class GameManager : MonoBehaviour
     public void AddGold(int amount)
     {
         SetGold(currentGold + amount);
+    }
+
+    public void RecordKill(string enemyTypeName, UnityEngine.Sprite icon)
+    {
+        if (string.IsNullOrEmpty(enemyTypeName)) return;
+        _killCounts.TryGetValue(enemyTypeName, out KillEntry entry);
+        _killCounts[enemyTypeName] = new KillEntry { count = entry.count + 1, icon = icon ?? entry.icon };
     }
 
     /// <summary>

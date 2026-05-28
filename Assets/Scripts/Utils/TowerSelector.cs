@@ -36,10 +36,9 @@ public class TowerSelector : MonoBehaviour
 
         // Ellenség kattintás – focus (csak ha Target Tower le van építve és fel van töltve)
         Enemy enemyHit = GetEnemyAt(worldPos);
-        if (enemyHit != null && Tower.IsTargetingTowerBuilt)
+        if (enemyHit != null && Tower.IsTargetingTowerBuilt && TargetTower.AnyCharged())
         {
-            // Csak más ellenség esetén és csak ha van charge
-            if (Enemy.FocusTarget != enemyHit && TargetTower.AnyCharged())
+            if (Enemy.FocusTarget != enemyHit)
             {
                 TargetTower.TryConsumeCharge();
                 Enemy.SetFocusTarget(enemyHit);

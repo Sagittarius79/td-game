@@ -55,7 +55,10 @@ public class NetworkGameManager : MonoBehaviour
     public string OpponentName { get; private set; } = "Opponent";
 
     /// <summary>Összes ismert játékos neve clientId alapján.</summary>
-    private Dictionary<ulong, string> _playerNames = new Dictionary<ulong, string>();
+    private Dictionary<ulong, string> _playerNames  = new Dictionary<ulong, string>();
+
+    /// <summary>Szint alapú gold bónusz amit a GameManager ad hozzá a kezdő goldhoz.</summary>
+    public int LevelGoldBonus { get; set; } = 0;
 
     /// <summary>Visszaadja egy játékos nevét clientId alapján.</summary>
     public string GetPlayerName(ulong clientId)
@@ -155,13 +158,22 @@ public class NetworkGameManager : MonoBehaviour
     const string MSG_SENT_ENEMY_DELTA        = "NGM_SndDelta";
     const string MSG_RELAY_SENT_ENEMY_DELTA  = "NGM_RelaySndD";
     // ── Dedikált szerveres üzenetek ─────────────────────────────────
-    const string MSG_TOWER_PLACED            = "NGM_TowerPlaced";   // kliens → szerver → kliensek: torony lerakás
+    const string MSG_TOWER_PLACED            = "NGM_TowerPlaced";      // kliens → szerver → kliensek: torony lerakás
+    const string MSG_TOWER_DESTROYED         = "NGM_TowerDestroyed";   // kliens → szerver → kliensek: torony megsemmisült
     const string MSG_CASTLE_HP               = "NGM_CastleHp";     // kliens → szerver → kliensek: kastély HP
     const string MSG_PLAYER_ELIMINATED       = "NGM_Eliminated";   // szerver → kliensek: játékos kiesett
     const string MSG_REQUEST_START           = "NGM_ReqStart";   // room owner → szerver: indítás kérés
     const string MSG_ROOM_OWNER              = "NGM_RoomOwner";  // szerver → kliensek: room owner clientId
     const string MSG_PLAYER_COUNT           = "NGM_PCount";     // szerver → kliensek: jelenlegi játékosszám
     const string MSG_PLAYER_ID              = "NGM_PlayerId";   // kliens → szerver: Google player_id
+    const string MSG_CLOSEST_ENEMY_DIST     = "NGM_ClosestDist";   // kliens → szerver: legközelebbi szörny távolsága (1 mp-enként)
+    const string MSG_REQUEST_SPECTATE       = "NGM_ReqSpectate";   // kiesett kliens → szerver: kéri az élő játékosok adatait
+    const string MSG_SPECTATE_DATA          = "NGM_SpectateData";  // szerver → kiesett kliens: válasz (dist, hp, count per játékos)
+    const string MSG_GOBLIN_EVENT           = "NGM_Goblin";        // szerver → kliensek: goblin esemény (runeIdx)
+    const string MSG_DARKNESS_EVENT         = "NGM_Darkness";      // szerver → kliensek: Mágikus Sötétség event (duration)
+    const string MSG_CLOUD_EVENT            = "NGM_Cloud";         // szerver → kliensek: Felhő átvonulás event (duration)
+    const string MSG_RAIN_EVENT             = "NGM_Rain";          // szerver → kliensek: Eső átvonulás event (duration)
+    const string MSG_BOSS_EVENT             = "NGM_Boss";          // szerver → kliensek: Boss event (eventIndex + duration)
 
     /// <summary>Kliens-oldali cache: utolsó szervertől kapott játékosszám (szerver self nélkül).</summary>
     private int _lastKnownPlayerCount = 0;
@@ -198,7 +210,12 @@ public class NetworkGameManager : MonoBehaviour
     {
         if (IsPvPMode && NetworkManager.Singleton != null &&
             NetworkManager.Singleton.IsListening)
+        {
             StartCoroutine(ReRegisterHandlersNextFrame());
+
+            if (scene.name == pvpGameSceneName && !NetworkManager.Singleton.IsServer)
+                StartCoroutine(SendClosestEnemyDistLoop());
+        }
     }
 
     IEnumerator ReRegisterHandlersNextFrame()
@@ -475,12 +492,21 @@ public class NetworkGameManager : MonoBehaviour
         msg.UnregisterNamedMessageHandler(MSG_SENT_ENEMY_DELTA);
         msg.UnregisterNamedMessageHandler(MSG_RELAY_SENT_ENEMY_DELTA);
         msg.UnregisterNamedMessageHandler(MSG_TOWER_PLACED);
+        msg.UnregisterNamedMessageHandler(MSG_TOWER_DESTROYED);
         msg.UnregisterNamedMessageHandler(MSG_CASTLE_HP);
         msg.UnregisterNamedMessageHandler(MSG_PLAYER_ELIMINATED);
         msg.UnregisterNamedMessageHandler(MSG_REQUEST_START);
         msg.UnregisterNamedMessageHandler(MSG_ROOM_OWNER);
         msg.UnregisterNamedMessageHandler(MSG_PLAYER_COUNT);
         msg.UnregisterNamedMessageHandler(MSG_PLAYER_ID);
+        msg.UnregisterNamedMessageHandler(MSG_CLOSEST_ENEMY_DIST);
+        msg.UnregisterNamedMessageHandler(MSG_REQUEST_SPECTATE);
+        msg.UnregisterNamedMessageHandler(MSG_SPECTATE_DATA);
+        msg.UnregisterNamedMessageHandler(MSG_GOBLIN_EVENT);
+        msg.UnregisterNamedMessageHandler(MSG_DARKNESS_EVENT);
+        msg.UnregisterNamedMessageHandler(MSG_CLOUD_EVENT);
+        msg.UnregisterNamedMessageHandler(MSG_RAIN_EVENT);
+        msg.UnregisterNamedMessageHandler(MSG_BOSS_EVENT);
 
         msg.RegisterNamedMessageHandler(MSG_START_GAME,             (_, reader)         => HandleStartGame(reader));
         msg.RegisterNamedMessageHandler(MSG_CASTLE_FALLEN,          (senderId, _)       => HandleCastleFallen_Server(senderId));
@@ -494,13 +520,120 @@ public class NetworkGameManager : MonoBehaviour
         msg.RegisterNamedMessageHandler(MSG_RELAY_WAVE_END_GOLD,    (_, reader)         => HandleRelayWaveEndGold(reader));
         msg.RegisterNamedMessageHandler(MSG_SENT_ENEMY_DELTA,       (_, reader)         => HandleSentEnemyDelta(reader));
         msg.RegisterNamedMessageHandler(MSG_RELAY_SENT_ENEMY_DELTA, (senderId, reader)  => HandleRelaySentEnemyDelta(senderId, reader));
-        msg.RegisterNamedMessageHandler(MSG_TOWER_PLACED,           (senderId, reader)  => HandleTowerPlaced(senderId, reader));
+        msg.RegisterNamedMessageHandler(MSG_TOWER_PLACED,            (senderId, reader)  => HandleTowerPlaced(senderId, reader));
+        msg.RegisterNamedMessageHandler(MSG_TOWER_DESTROYED,         (senderId, reader)  => HandleTowerDestroyed(senderId, reader));
         msg.RegisterNamedMessageHandler(MSG_CASTLE_HP,              (senderId, reader)  => HandleCastleHp(senderId, reader));
         msg.RegisterNamedMessageHandler(MSG_PLAYER_ELIMINATED,      (_, reader)         => HandlePlayerEliminated(reader));
         msg.RegisterNamedMessageHandler(MSG_REQUEST_START,          (senderId, _)       => HandleRequestStart(senderId));
         msg.RegisterNamedMessageHandler(MSG_ROOM_OWNER,             (_, reader)         => HandleRoomOwner(reader));
         msg.RegisterNamedMessageHandler(MSG_PLAYER_COUNT,           (_, reader)         => HandlePlayerCount(reader));
         msg.RegisterNamedMessageHandler(MSG_PLAYER_ID,              (senderId, reader)  => HandlePlayerId(senderId, reader));
+        msg.RegisterNamedMessageHandler(MSG_CLOSEST_ENEMY_DIST,  (senderId, reader)  => HandleClosestEnemyDist(senderId, reader));
+        msg.RegisterNamedMessageHandler(MSG_REQUEST_SPECTATE,    (senderId, reader)  => HandleRequestSpectate(senderId, reader));
+        msg.RegisterNamedMessageHandler(MSG_SPECTATE_DATA,       (_, reader)         => HandleSpectateData(reader));
+        msg.RegisterNamedMessageHandler(MSG_GOBLIN_EVENT,        (_, reader)         => HandleGoblinEvent(reader));
+        msg.RegisterNamedMessageHandler(MSG_DARKNESS_EVENT,      (_, reader)         => HandleDarknessEvent(reader));
+        msg.RegisterNamedMessageHandler(MSG_CLOUD_EVENT,         (_, reader)         => HandleCloudEvent(reader));
+        msg.RegisterNamedMessageHandler(MSG_RAIN_EVENT,          (_, reader)         => HandleRainEvent(reader));
+        msg.RegisterNamedMessageHandler(MSG_BOSS_EVENT,          (_, reader)         => HandleBossEvent(reader));
+    }
+
+    // ── Goblin esemény szinkronizáció ────────────────────────────────
+
+    /// <summary>Szerver hívja: elküldi az összes kliensnek melyik rúna droppoljon.</summary>
+    public void BroadcastGoblinEvent(int runeIdx)
+    {
+        using var writer = new FastBufferWriter(4, Allocator.Temp);
+        writer.WriteValueSafe(runeIdx);
+        NetworkManager.Singleton.CustomMessagingManager
+            .SendNamedMessageToAll(MSG_GOBLIN_EVENT, writer);
+
+        // Szerver maga is végrehajtja (ha van GoblinEventManager a szerveren)
+        GoblinEventManager.Instance?.ReceiveGoblinEvent(runeIdx);
+    }
+
+    void HandleGoblinEvent(FastBufferReader reader)
+    {
+        reader.ReadValueSafe(out int runeIdx);
+        GoblinEventManager.Instance?.ReceiveGoblinEvent(runeIdx);
+    }
+
+    // ── Mágikus Sötétség event szinkronizáció ────────────────────────
+
+    /// <summary>Szerver hívja: Mágikus Sötétség eventet broadcastolja az összes kliensnek.</summary>
+    public void BroadcastDarknessEvent(float duration)
+    {
+        using var writer = new FastBufferWriter(4, Allocator.Temp);
+        writer.WriteValueSafe(duration);
+        NetworkManager.Singleton.CustomMessagingManager
+            .SendNamedMessageToAll(MSG_DARKNESS_EVENT, writer);
+
+        DarknessEventManager.Instance?.ReceiveDarknessEvent(duration);
+    }
+
+    void HandleDarknessEvent(FastBufferReader reader)
+    {
+        reader.ReadValueSafe(out float duration);
+        DarknessEventManager.Instance?.ReceiveDarknessEvent(duration);
+    }
+
+    // ── Felhő átvonulás event szinkronizáció ─────────────────────────
+
+    /// <summary>Szerver hívja: Felhő eventet broadcastolja az összes kliensnek.</summary>
+    public void BroadcastCloudEvent(float duration)
+    {
+        using var writer = new FastBufferWriter(4, Allocator.Temp);
+        writer.WriteValueSafe(duration);
+        NetworkManager.Singleton.CustomMessagingManager
+            .SendNamedMessageToAll(MSG_CLOUD_EVENT, writer);
+
+        CloudEventManager.Instance?.ReceiveCloudEvent(duration);
+    }
+
+    void HandleCloudEvent(FastBufferReader reader)
+    {
+        reader.ReadValueSafe(out float duration);
+        CloudEventManager.Instance?.ReceiveCloudEvent(duration);
+    }
+
+    // ── Eső átvonulás event szinkronizáció ────────────────────────────
+
+    /// <summary>Szerver hívja: Eső eventet broadcastolja az összes kliensnek.</summary>
+    public void BroadcastRainEvent(float duration)
+    {
+        using var writer = new FastBufferWriter(4, Allocator.Temp);
+        writer.WriteValueSafe(duration);
+        NetworkManager.Singleton.CustomMessagingManager
+            .SendNamedMessageToAll(MSG_RAIN_EVENT, writer);
+
+        RainEventManager.Instance?.ReceiveRainEvent(duration);
+    }
+
+    void HandleRainEvent(FastBufferReader reader)
+    {
+        reader.ReadValueSafe(out float duration);
+        RainEventManager.Instance?.ReceiveRainEvent(duration);
+    }
+
+    // ── Boss event szinkronizáció ─────────────────────────────────────
+
+    /// <summary>Szerver hívja: Boss eventet broadcastolja az összes kliensnek.</summary>
+    public void BroadcastBossEvent(int eventIndex, float duration)
+    {
+        using var writer = new FastBufferWriter(8, Allocator.Temp);
+        writer.WriteValueSafe(eventIndex);
+        writer.WriteValueSafe(duration);
+        NetworkManager.Singleton.CustomMessagingManager
+            .SendNamedMessageToAll(MSG_BOSS_EVENT, writer);
+
+        BossEventManager.Instance?.ReceiveBossEvent(eventIndex, duration);
+    }
+
+    void HandleBossEvent(FastBufferReader reader)
+    {
+        reader.ReadValueSafe(out int eventIndex);
+        reader.ReadValueSafe(out float duration);
+        BossEventManager.Instance?.ReceiveBossEvent(eventIndex, duration);
     }
 
     // ── Host: játékos számláló + room owner kezelés ──────────────────
@@ -1638,6 +1771,43 @@ public class NetworkGameManager : MonoBehaviour
         }
     }
 
+    /// <summary>Tower.TakeDamage hívja halálakor.</summary>
+    public void BroadcastTowerDestroyed(string towerName)
+    {
+        if (!IsPvPMode || NetworkManager.Singleton == null) return;
+
+        using var writer = new FastBufferWriter(4 + towerName.Length * 2 + 8, Allocator.Temp);
+        writer.WriteValueSafe(towerName);
+        writer.WriteValueSafe(NetworkManager.Singleton.LocalClientId);
+        NetworkManager.Singleton.CustomMessagingManager
+            .SendNamedMessage(MSG_TOWER_DESTROYED, NetworkManager.ServerClientId, writer);
+    }
+
+    void HandleTowerDestroyed(ulong senderId, FastBufferReader reader)
+    {
+        reader.ReadValueSafe(out string towerName);
+        reader.ReadValueSafe(out ulong originalSender);
+
+        if (NetworkManager.Singleton.IsHost)
+        {
+            OpponentDataTracker.Instance?.RecordTowerRemoved(originalSender, towerName);
+
+            foreach (var clientId in NetworkManager.Singleton.ConnectedClientsIds)
+            {
+                if (clientId == originalSender || clientId == NetworkManager.ServerClientId) continue;
+                using var fwd = new FastBufferWriter(64, Allocator.Temp);
+                fwd.WriteValueSafe(towerName);
+                fwd.WriteValueSafe(originalSender);
+                NetworkManager.Singleton.CustomMessagingManager
+                    .SendNamedMessage(MSG_TOWER_DESTROYED, clientId, fwd);
+            }
+        }
+        else
+        {
+            OpponentDataTracker.Instance?.RecordTowerRemoved(originalSender, towerName);
+        }
+    }
+
     /// <summary>
     /// Castle hívja HP változáskor – szétküld minden kliensnek.
     /// </summary>
@@ -1676,6 +1846,153 @@ public class NetworkGameManager : MonoBehaviour
         else
         {
             OpponentDataTracker.Instance?.RecordCastleHp(originalSender, hp);
+        }
+    }
+
+    // ── Legközelebbi szörny távolsága (kliens → szerver, 1 mp-enként) ──
+
+    IEnumerator SendClosestEnemyDistLoop()
+    {
+        Debug.Log("[Spectate] SendClosestEnemyDistLoop INDULT");
+        var wait = new WaitForSeconds(1f);
+        while (IsPvPMode && !_gameEnded)
+        {
+            yield return wait;
+            if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsConnectedClient) yield break;
+
+            float minDist  = float.MaxValue;
+            float closestHp = -1f;
+            foreach (var enemy in Enemy.AllEnemies)
+            {
+                if (enemy == null || enemy.IsDead) continue;
+                float d = enemy.DistanceToCastle;
+                if (d < minDist) { minDist = d; closestHp = enemy.CurrentHealth; }
+            }
+            float dist       = minDist == float.MaxValue ? -1f : minDist;
+            int   enemyCount = Enemy.AllEnemies.Count;
+
+            using var writer = new FastBufferWriter(20, Allocator.Temp);
+            writer.WriteValueSafe(NetworkManager.Singleton.LocalClientId);
+            writer.WriteValueSafe(dist);
+            writer.WriteValueSafe(closestHp);
+            writer.WriteValueSafe(enemyCount);
+            NetworkManager.Singleton.CustomMessagingManager
+                .SendNamedMessage(MSG_CLOSEST_ENEMY_DIST, NetworkManager.ServerClientId, writer);
+        }
+        Debug.Log("[Spectate] SendClosestEnemyDistLoop MEGÁLLT");
+    }
+
+    void HandleClosestEnemyDist(ulong senderId, FastBufferReader reader)
+    {
+        reader.ReadValueSafe(out ulong clientId);
+        reader.ReadValueSafe(out float dist);
+        reader.ReadValueSafe(out float hp);
+        reader.ReadValueSafe(out int enemyCount);
+
+        // Szerver tárolja az adatot – spectate kérésre válaszoláshoz.
+        // Broadcast helyett a kiesett kliens explicit kér (MSG_REQUEST_SPECTATE).
+        if (NetworkManager.Singleton.IsServer)
+            OpponentDataTracker.Instance?.RecordClosestEnemyDist(clientId, dist, hp, enemyCount);
+    }
+
+    // ── Spectate polling (kiesett kliens kéri az adatokat) ───────────
+
+    private Coroutine _spectatePollingCoroutine;
+
+    /// <summary>SpectatePanel.Open() hívja – megindítja az 1 mp-enkénti lekérést.</summary>
+    public void StartSpectating()
+    {
+        if (!IsPvPMode || NetworkManager.Singleton == null) return;
+        if (_spectatePollingCoroutine != null) StopCoroutine(_spectatePollingCoroutine);
+        _spectatePollingCoroutine = StartCoroutine(SpectatePollingLoop());
+    }
+
+    /// <summary>SpectatePanel.Close() hívja – leállítja a lekérést.</summary>
+    public void StopSpectating()
+    {
+        if (_spectatePollingCoroutine == null) return;
+        StopCoroutine(_spectatePollingCoroutine);
+        _spectatePollingCoroutine = null;
+    }
+
+    IEnumerator SpectatePollingLoop()
+    {
+        var wait = new WaitForSeconds(1f);
+        while (IsPvPMode)
+        {
+            if (NetworkManager.Singleton == null || !NetworkManager.Singleton.IsConnectedClient) yield break;
+
+            using var writer = new FastBufferWriter(0, Allocator.Temp);
+            NetworkManager.Singleton.CustomMessagingManager
+                .SendNamedMessage(MSG_REQUEST_SPECTATE, NetworkManager.ServerClientId, writer);
+
+            yield return wait;
+        }
+    }
+
+    void HandleRequestSpectate(ulong requesterId, FastBufferReader reader)
+    {
+        if (!NetworkManager.Singleton.IsServer) return;
+
+        var tracker = OpponentDataTracker.Instance;
+        if (tracker == null) return;
+
+        // Csak az _alivePlayers adatait küldjük – kiesett játékosokét nem
+        var entries = new System.Collections.Generic.List<(ulong id, float dist, float hp, int count)>();
+        foreach (ulong id in _alivePlayers)
+        {
+            if (id == requesterId) continue;
+            entries.Add((id,
+                tracker.GetClosestEnemyDist(id),
+                tracker.GetClosestEnemyHp(id),
+                tracker.GetClosestEnemyCount(id)));
+        }
+
+        // Kezdeti méret becsült felső korlát; WriteValueSafe auto-növeli ha kell
+        using var fwd = new FastBufferWriter(256, Allocator.Temp);
+        fwd.WriteValueSafe(entries.Count);
+        foreach (var e in entries)
+        {
+            fwd.WriteValueSafe(e.id);
+            fwd.WriteValueSafe(e.dist);
+            fwd.WriteValueSafe(e.hp);
+            fwd.WriteValueSafe(e.count);
+
+            var towers = tracker.GetTowerCounts(e.id) ?? new System.Collections.Generic.Dictionary<string, int>();
+            fwd.WriteValueSafe(towers.Count);
+            foreach (var kv in towers)
+            {
+                fwd.WriteValueSafe(kv.Key);
+                fwd.WriteValueSafe(kv.Value);
+            }
+        }
+        NetworkManager.Singleton.CustomMessagingManager
+            .SendNamedMessage(MSG_SPECTATE_DATA, requesterId, fwd);
+    }
+
+    void HandleSpectateData(FastBufferReader reader)
+    {
+        reader.ReadValueSafe(out int count);
+        for (int i = 0; i < count; i++)
+        {
+            reader.ReadValueSafe(out ulong clientId);
+            reader.ReadValueSafe(out float dist);
+            reader.ReadValueSafe(out float hp);
+            reader.ReadValueSafe(out int enemyCount);
+            OpponentDataTracker.Instance?.RecordClosestEnemyDist(clientId, dist, hp, enemyCount);
+
+            reader.ReadValueSafe(out int towerTypeCount);
+            if (towerTypeCount > 0)
+            {
+                var towers = new System.Collections.Generic.Dictionary<string, int>(towerTypeCount);
+                for (int j = 0; j < towerTypeCount; j++)
+                {
+                    reader.ReadValueSafe(out string towerName);
+                    reader.ReadValueSafe(out int towerCount);
+                    towers[towerName] = towerCount;
+                }
+                OpponentDataTracker.Instance?.SetTowerCounts(clientId, towers);
+            }
         }
     }
 }

@@ -1,0 +1,258 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7051ab0fb0ef45d40a62bd60571b4155, type: 3}
+  m_Name: CharmLibrary
+  m_EditorClassIdentifier: Assembly-CSharp::CharmLibrary
+  charms:
+  - id: 0
+    displayName: Gold Lvl1
+    description: Charm gives you +1 Gold for every 20 kills
+    icon: {fileID: -8079357727930904666, guid: cc58639326c6d0640a8d212b053000ae, type: 3}
+    effectSound: {fileID: 8300000, guid: 7d0bf96b31ae0af4ab632a4d10f825be, type: 3}
+    rarity: 0
+    effectType: 9
+    effectValue: 1
+    level: 1
+  - id: 1
+    displayName: Stone Crit Chance Lvl1
+    description: Charm gives you +2% Global Critical Chance for Stone Balls
+    icon: {fileID: -862659620070987507, guid: b860c0a6442c8bd41a92d58d0c574cf8, type: 3}
+    effectSound: {fileID: 0}
+    rarity: 0
+    effectType: 2
+    effectValue: 2
+    level: 1
+  - id: 2
+    displayName: Instant Kill Lvl1
+    description: 'Charm gives you +0.1% Instant Death for Magic '
+    icon: {fileID: 8695345818136056482, guid: 51dac6839c71cec448d10aaba4ae3593, type: 3}
+    effectSound: {fileID: 8300000, guid: 8f396046734fcb44a86db8de866c2d48, type: 3}
+    rarity: 0
+    effectType: 11
+    effectValue: 0.1
+    level: 1
+  - id: 3
+    displayName: 1% Chance to broke an armor Lvl1
+    description: 1% Chance to broke an armor for Prisma Tower
+    icon: {fileID: -6782219159501201630, guid: 3a681fd3867424243a041d8435a7caa5, type: 3}
+    effectSound: {fileID: 0}
+    rarity: 0
+    effectType: 13
+    effectValue: 1
+    level: 1
+  - id: 4
+    displayName: 1% Chance to Stun Lvl1
+    description: 1% Chance to Stun the Stone Thrower
+    icon: {fileID: -596741592862029913, guid: 07a97b97913c8d845be7e33f43a3450e, type: 3}
+    effectSound: {fileID: 0}
+    rarity: 0
+    effectType: 14
+    effectValue: 1
+    level: 1
+  - id: 6
+    displayName: 1% Chance to bounce Poison Lvl1
+    description: 1% Chance to bounce Poison To Another Target
+    icon: {fileID: -1150111285253670853, guid: e411d4a501978424590a82085a6e316c, type: 3}
+    effectSound: {fileID: 0}
+    rarity: 0
+    effectType: 16
+    effectValue: 1
+    level: 1
+  - id: 7
+    displayName: 1% Teleport Hit Lvl1
+    description: '1% chance to halve the teleported creature''s health. '
+    icon: {fileID: -165899576139747431, guid: b2db9897505372a48b1451a060c48162, type: 3}
+    effectSound: {fileID: 0}
+    rarity: 0
+    effectType: 17
+    effectValue: 1
+    level: 1
+  - id: 8
+    displayName: 1% Another Turul Lvl1
+    description: '1% Chance to Shoot another Turul Too '
+    icon: {fileID: -8212150858239733273, guid: a9d4bc1eea79ffb4e9078f360b16bbf8, type: 3}
+    effectSound: {fileID: 0}
+    rarity: 0
+    effectType: 18
+    effectValue: 1
+    level: 1
+  - id: 9
+    displayName: 1% Chance To Burn Enemies Lvl1
+    description: '1% Chance To Burn Enemies '
+    icon: {fileID: -4420199814514905591, guid: 34d17e4d454fc6641a96fb5169b8adb9, type: 3}
+    effectSound: {fileID: 0}
+    rarity: 0
+    effectType: 15
+    effectValue: 1
+    level: 1
+  - id: 10
+    displayName: Gold Lvl2
+    description: Charm gives you +2 Gold for every 20 kills
+    icon: {fileID: 1127712328634408088, guid: 06016864b0c2a914d93ec666498c4157, type: 3}
+    effectSound: {fileID: 8300000, guid: 7d0bf96b31ae0af4ab632a4d10f825be, type: 3}
+    rarity: 1
+    effectType: 9
+    effectValue: 2
+    level: 2
+  - id: 11
+    displayName: Stone Crit Chance Lvl2
+    description: Charm gives you +3% Global Critical Chance for Stone Balls
+    icon: {fileID: -3102271063359740478, guid: 21fb5b71ccfba25429f8ba451d5c24db, type: 3}
+    effectSound: {fileID: 0}
+    rarity: 1
+    effectType: 2
+    effectValue: 3
+    level: 2
+  - id: 12
+    displayName: Instant Kill Lvl2
+    description: Charm gives you +0.2% Instant Death for Magic
+    icon: {fileID: -950987401516070848, guid: b44074438ebf1af40a31a16280fb8a89, type: 3}
+    effectSound: {fileID: 8300000, guid: 8f396046734fcb44a86db8de866c2d48, type: 3}
+    rarity: 1
+    effectType: 11
+    effectValue: 0.2
+    level: 2
+  - id: 13
+    displayName: 1.5% Chance to broke an armor Lvl2
+    description: 1.5% Chance to broke an armor for Prisma Tower
+    icon: {fileID: -8255526097578466951, guid: 93d2e673d0cb6214bb8e16f158e405d6, type: 3}
+    effectSound: {fileID: 0}
+    rarity: 1
+    effectType: 13
+    effectValue: 1.5
+    level: 2
+  - id: 14
+    displayName: 1.5% Chance to Stun Lvl2
+    description: 1.5% Chance to Stun the Stone Thrower
+    icon: {fileID: 6139894305940312013, guid: c28386c91fc16204eaafa4781891275a, type: 3}
+    effectSound: {fileID: 0}
+    rarity: 1
+    effectType: 14
+    effectValue: 1.5
+    level: 2
+  - id: 15
+    displayName: 1.5% Chance to bounce Poison Lvl2
+    description: 1.5% Chance to bounce Poison To Another Target
+    icon: {fileID: 759560037387358619, guid: 55dff24bfefe28b488376d090500b168, type: 3}
+    effectSound: {fileID: 0}
+    rarity: 1
+    effectType: 16
+    effectValue: 1.5
+    level: 2
+  - id: 16
+    displayName: 1.5% Teleport Hit Lvl2
+    description: 1.5% chance to halve the teleported creature's health.
+    icon: {fileID: 5742559340534597922, guid: 7f20196836d3b484a9d75cee94e95d6f, type: 3}
+    effectSound: {fileID: 0}
+    rarity: 1
+    effectType: 17
+    effectValue: 1.5
+    level: 2
+  - id: 17
+    displayName: 1.5% Another Turul Lvl2
+    description: 1.5% Chance to Shoot another Turul Too
+    icon: {fileID: -7776586091534216600, guid: a615b87032b1a5842b9f764c21c59896, type: 3}
+    effectSound: {fileID: 0}
+    rarity: 1
+    effectType: 18
+    effectValue: 1.5
+    level: 2
+  - id: 18
+    displayName: 1.5% Chance To Burn Enemies Lvl2
+    description: 1.5% Chance To Burn Enemies Lvl1
+    icon: {fileID: 2673446715152825931, guid: 86e8f8fc075d35a4db77e1d4e79d0317, type: 3}
+    effectSound: {fileID: 0}
+    rarity: 1
+    effectType: 15
+    effectValue: 1.5
+    level: 2
+  - id: 19
+    displayName: Gold Lvl3
+    description: Charm gives you +3 Gold for every 20 kills
+    icon: {fileID: 852428790274868442, guid: d02e8f41667249e4ea6da8f44064cfb1, type: 3}
+    effectSound: {fileID: 8300000, guid: 7d0bf96b31ae0af4ab632a4d10f825be, type: 3}
+    rarity: 2
+    effectType: 9
+    effectValue: 3
+    level: 3
+  - id: 20
+    displayName: Stone Crit Chance Lvl3
+    description: Charm gives you +4% Global Critical Chance for Stone Balls
+    icon: {fileID: 7006983945167368965, guid: a74138f591dacef4ea529ae86fd7df72, type: 3}
+    effectSound: {fileID: 0}
+    rarity: 2
+    effectType: 2
+    effectValue: 4
+    level: 3
+  - id: 21
+    displayName: Instant Kill Lvl3
+    description: Charm gives you +0.3% Instant Death for Magic
+    icon: {fileID: -5323267518599946125, guid: 06911fe7afaabb54ab72349ce2e6875f, type: 3}
+    effectSound: {fileID: 8300000, guid: 8f396046734fcb44a86db8de866c2d48, type: 3}
+    rarity: 2
+    effectType: 11
+    effectValue: 0.3
+    level: 3
+  - id: 22
+    displayName: 2% Chance to broke an armor Lvl3
+    description: 2% Chance to broke an armor for Prisma Tower
+    icon: {fileID: -2545522584759142417, guid: ee4cdc86059369749890284ba7dd65f7, type: 3}
+    effectSound: {fileID: 0}
+    rarity: 2
+    effectType: 13
+    effectValue: 2
+    level: 3
+  - id: 23
+    displayName: 2% Chance to Stun Lvl3
+    description: 2% Chance to Stun the Stone Thrower
+    icon: {fileID: 8470937983885540929, guid: 842ef910bc161324bb3fe24ad818dff0, type: 3}
+    effectSound: {fileID: 0}
+    rarity: 2
+    effectType: 14
+    effectValue: 2
+    level: 3
+  - id: 24
+    displayName: 2% Chance to bounce Poison Lvl3
+    description: 2% Chance to bounce Poison To Another Target
+    icon: {fileID: 7178625655272682904, guid: 7a996f269b8bae541b7defadf197afb7, type: 3}
+    effectSound: {fileID: 0}
+    rarity: 2
+    effectType: 16
+    effectValue: 2
+    level: 3
+  - id: 25
+    displayName: 3% Teleport Hit Lvl3
+    description: 3% chance to halve the teleported creature's health.
+    icon: {fileID: -4279261046138454153, guid: 2e84e70a9240afc449c22c4b98c3d48c, type: 3}
+    effectSound: {fileID: 0}
+    rarity: 2
+    effectType: 17
+    effectValue: 3
+    level: 3
+  - id: 26
+    displayName: 2% Another Turul Lvl3
+    description: 2% Chance to Shoot another Turul Too
+    icon: {fileID: 6028962623572018938, guid: 830774706cc8fb345a9af9bac5e29e5d, type: 3}
+    effectSound: {fileID: 0}
+    rarity: 2
+    effectType: 18
+    effectValue: 2
+    level: 3
+  - id: 27
+    displayName: 2% Chance To Burn Enemies Lvl3
+    description: 2% Chance To Burn Enemies Lvl1
+    icon: {fileID: -8395946272642106043, guid: 7dcd8299e736d394e99eb13c5890df76, type: 3}
+    effectSound: {fileID: 0}
+    rarity: 2
+    effectType: 15
+    effectValue: 2
+    level: 3

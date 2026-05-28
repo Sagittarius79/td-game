@@ -64,7 +64,11 @@ public class CharacterSheetUI : MonoBehaviour
     {
         if (sheetPanel != null) sheetPanel.SetActive(false);
 
-        if (TutorialCardsUI.Instance != null)
+        if (DetailedCharacterUI.Instance != null)
+        {
+            DetailedCharacterUI.Instance.Show();
+        }
+        else if (TutorialCardsUI.Instance != null)
         {
             TutorialCardsUI.Instance.Show(() =>
                 FindObjectOfType<MainMenuUI>()?.SetCharacterCardVisible(true));

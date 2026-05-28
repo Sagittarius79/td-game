@@ -149,7 +149,12 @@ public class ServerSyncManager : MonoBehaviour
                 characterId          = sc.character_id,
                 characterName        = sc.character_name,
                 gameMode             = sc.game_mode == "SSF" ? CharacterGameMode.SSF : CharacterGameMode.PvP,
+                characterClass       = sc.character_class == "StoneThrower" ? CharacterClass.StoneThrower
+                                     : sc.character_class == "Mage"         ? CharacterClass.Mage
+                                     : CharacterClass.Archer,
                 totalXP              = sc.total_xp,
+                totalMonstersKilled  = sc.total_monsters_killed,
+                crystals             = sc.crystals,
                 totalWins            = sc.local_wins,
                 totalLosses          = sc.local_losses,
                 maxWave              = sc.max_wave,
@@ -260,8 +265,11 @@ public class ServerSyncManager : MonoBehaviour
             sb.Append($"\"character_id\":\"{ch.characterId}\",");
             sb.Append($"\"character_name\":\"{EscapeJson(ch.characterName)}\",");
             sb.Append($"\"game_mode\":\"{ch.gameMode}\",");
+            sb.Append($"\"character_class\":\"{ch.characterClass}\",");
             sb.Append($"\"available_skill_points\":{ch.availableSkillPoints},");
             sb.Append($"\"total_xp\":{ch.totalXP},");
+            sb.Append($"\"total_monsters_killed\":{ch.totalMonstersKilled},");
+            sb.Append($"\"crystals\":{ch.crystals},");
             sb.Append($"\"local_wins\":{ch.totalWins},");
             sb.Append($"\"local_losses\":{ch.totalLosses},");
             sb.Append($"\"max_wave\":{ch.maxWave},");
@@ -325,8 +333,11 @@ public class ServerSyncManager : MonoBehaviour
         public string   character_id;
         public string   character_name;
         public string   game_mode;
+        public string   character_class;
         public int      available_skill_points;
         public long     total_xp;
+        public long     total_monsters_killed;
+        public int      crystals;
         public int      local_wins;
         public int      local_losses;
         public int      max_wave;

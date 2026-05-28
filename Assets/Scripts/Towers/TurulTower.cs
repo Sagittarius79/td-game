@@ -39,6 +39,15 @@ public class TurulTower : Tower
             effectiveMax += countBonus;
         }
 
+        // Charm: TurulExtraBirdChance – X% eséllyel +1 madár, ha a prefab jogosult
+        var prefabProj = projectilePrefab.GetComponent<Projectile>();
+        if (prefabProj != null && prefabProj.eligibleForTurulExtraBirdCharm
+            && CharmEffects.RollPercentChance(CharmEffectType.TurulExtraBirdChance))
+        {
+            effectiveMax += 1;
+            CharmEffects.PlayEffectSound(CharmEffectType.TurulExtraBirdChance);
+        }
+
         if (effectiveMax > 0 && _activeProjectiles.Count >= effectiveMax) return;
 
         Vector3 origin = shootPoint != null ? shootPoint.position : transform.position;
@@ -68,7 +77,7 @@ public class TurulTower : Tower
 
         var af = go.GetComponent<altalanos_fejlesztesek>();
         if (af != null)
-            af.SetTowerData(transform.position, GetEffectiveRange());
+            af.SetTowerData(transform.position, GetEffectiveRange(), this);
 
         _activeProjectiles.Add(go);
     }

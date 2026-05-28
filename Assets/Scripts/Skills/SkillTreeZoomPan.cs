@@ -8,25 +8,34 @@ using UnityEngine.EventSystems;
 public class SkillTreeZoomPan : MonoBehaviour, IScrollHandler
 {
     [Header("Nagyítás")]
-    public float minZoom     = 1.0f;
-    public float maxZoom     = 3.0f;
-    public float scrollSpeed = 0.15f;
+    public float minZoom          = 1.0f;
+    public float maxZoom          = 3.0f;
+    public float scrollSpeed      = 0.15f;
+    public float pinchSensitivity = 0.005f;
+
+    [Header("Simítás")]
+    public float smoothSpeed = 10f;
 
     private RectTransform _rect;
     private RectTransform _parentRect;
 
+    // Célállapot – mindig ebbe lerp-elünk (mint CameraZoom targetZoom/targetPosition)
+    private float   _targetScale;
+    private Vector2 _targetPosition;
+
     // Egy ujj – mozgatás
-    private int     _dragFingerId  = -1;
+    private int     _dragFingerId = -1;
     private Vector2 _lastDragPos;
 
     // Két ujj – pinch zoom
-    private bool  _wasPinching;
-    private float _lastPinchDist;
+    private bool _wasPinching;
 
     void Awake()
     {
-        _rect       = GetComponent<RectTransform>();
-        _parentRect = _rect.parent as RectTransform;
+        _rect           = GetComponent<RectTransform>();
+        _parentRect     = _rect.parent as RectTransform;
+        _targetScale    = _rect.localScale.x;
+        _targetPosition = _rect.anchoredPosition;
     }
 
     void Update()
@@ -37,19 +46,13 @@ public class SkillTreeZoomPan : MonoBehaviour, IScrollHandler
         {
             _dragFingerId = -1;
             _wasPinching  = false;
-            return;
         }
-
-        if (touchCount >= 2)
+        else if (touchCount >= 2)
         {
-            // Pinch zoom – drag törlése
             _dragFingerId = -1;
             HandlePinch();
-            return;
         }
-
-        // Egy ujj – mozgatás (csak ha nem volt épp pinch)
-        if (touchCount == 1 && !_wasPinching)
+        else if (touchCount == 1 && !_wasPinching)
         {
             Touch t = Input.GetTouch(0);
 
@@ -60,10 +63,10 @@ public class SkillTreeZoomPan : MonoBehaviour, IScrollHandler
             }
             else if (t.phase == TouchPhase.Moved && t.fingerId == _dragFingerId)
             {
-                Vector2 delta          = t.position - _lastDragPos;
-                _lastDragPos           = t.position;
-                _rect.anchoredPosition += delta;
-                ClampPosition();
+                Vector2 delta    = t.position - _lastDragPos;
+                _lastDragPos     = t.position;
+                _targetPosition += delta;
+                ClampTargetPosition();
             }
             else if (t.phase == TouchPhase.Ended || t.phase == TouchPhase.Canceled)
             {
@@ -78,109 +81,120 @@ public class SkillTreeZoomPan : MonoBehaviour, IScrollHandler
             if (t.phase == TouchPhase.Ended || t.phase == TouchPhase.Canceled)
                 _wasPinching = false;
             else
-                _lastDragPos = t.position; // szinkronban tartjuk, ne ugorjon
+                _lastDragPos = t.position;
         }
+
+        // Lerp alkalmazása – mint CameraZoom.ApplyZoomAndPosition
+        float dt = Time.deltaTime * smoothSpeed;
+
+        float newScale = Mathf.Lerp(_rect.localScale.x, _targetScale, dt);
+        if (Mathf.Abs(newScale - _targetScale) < 0.001f) newScale = _targetScale;
+        _rect.localScale = Vector3.one * newScale;
+
+        Vector2 newPos = Vector2.Lerp(_rect.anchoredPosition, _targetPosition, dt);
+        if (Vector2.Distance(newPos, _targetPosition) < 0.5f) newPos = _targetPosition;
+        _rect.anchoredPosition = newPos;
     }
+
+    // ── Pinch ─────────────────────────────────────────────────────────────
 
     void HandlePinch()
     {
         Touch t0 = Input.GetTouch(0);
         Touch t1 = Input.GetTouch(1);
 
-        float dist = Vector2.Distance(t0.position, t1.position);
+        // Delta alapú (mint CameraZoom) – nem ratio, nem kapkod
+        float prevDist = Vector2.Distance(
+            t0.position - t0.deltaPosition,
+            t1.position - t1.deltaPosition);
+        float currDist = Vector2.Distance(t0.position, t1.position);
 
         if (!_wasPinching)
         {
-            _lastPinchDist = dist;
-            _wasPinching   = true;
+            _wasPinching = true;
             return;
         }
 
-        if (Mathf.Approximately(dist, 0f)) return;
+        float oldTarget = _targetScale;
+        _targetScale = Mathf.Clamp(_targetScale + (currDist - prevDist) * pinchSensitivity,
+                                   minZoom, maxZoom);
 
-        float factor = dist / _lastPinchDist;
-        _lastPinchDist = dist;
+        if (_targetScale <= minZoom)
+        {
+            _targetPosition = Vector2.zero;
+            return;
+        }
 
+        // Pivot: a két ujj közepe felé tolja a tartalmat
         Vector2 center = (t0.position + t1.position) * 0.5f;
         Vector2 localCenter;
         RectTransformUtility.ScreenPointToLocalPointInRectangle(
             _rect, center, null, out localCenter);
 
-        ApplyZoom(factor, localCenter);
+        float ratio      = _targetScale / oldTarget;
+        _targetPosition += localCenter * (ratio - 1f);
+        ClampTargetPosition();
     }
 
-    // ── Egérgörgő (PC / Editor) ───────────────────────────────────────
+    // ── Egérgörgő ─────────────────────────────────────────────────────────
 
     public void OnScroll(PointerEventData e)
     {
-        float scroll = e.scrollDelta.y;
-        if (Mathf.Abs(scroll) < 0.001f) return;
+        if (Mathf.Abs(e.scrollDelta.y) < 0.001f) return;
 
         Vector2 localPos;
         RectTransformUtility.ScreenPointToLocalPointInRectangle(
             _rect, e.position, null, out localPos);
 
-        ApplyZoom(1f + scroll * scrollSpeed, localPos);
+        ApplyScrollToTarget(1f + e.scrollDelta.y * scrollSpeed, localPos);
     }
 
     void LateUpdate()
     {
-        // Input.GetAxis fallback PC-re
         float scroll = Input.GetAxis("Mouse ScrollWheel");
         if (Mathf.Abs(scroll) > 0.001f)
         {
             Vector2 localPos;
             RectTransformUtility.ScreenPointToLocalPointInRectangle(
                 _rect, Input.mousePosition, null, out localPos);
-            ApplyZoom(1f + scroll * scrollSpeed * 10f, localPos);
+            ApplyScrollToTarget(1f + scroll * scrollSpeed * 10f, localPos);
         }
     }
 
-    // ── Zoom alkalmazása ──────────────────────────────────────────────
-
-    void ApplyZoom(float factor, Vector2 pivotLocal)
+    void ApplyScrollToTarget(float factor, Vector2 pivotLocal)
     {
-        float oldScale = _rect.localScale.x;
-        float newScale = Mathf.Clamp(oldScale * factor, minZoom, maxZoom);
+        float oldTarget = _targetScale;
+        _targetScale = Mathf.Clamp(_targetScale * factor, minZoom, maxZoom);
 
-        if (newScale <= minZoom)
+        if (_targetScale <= minZoom)
         {
-            _rect.localScale       = Vector3.one * minZoom;
-            _rect.anchoredPosition = Vector2.zero;
+            _targetPosition = Vector2.zero;
             return;
         }
 
-        if (Mathf.Approximately(newScale, oldScale)) return;
-
-        float ratio            = newScale / oldScale;
-        _rect.localScale       = Vector3.one * newScale;
-        _rect.anchoredPosition += pivotLocal * (ratio - 1f);
-
-        ClampPosition();
+        float ratio      = _targetScale / oldTarget;
+        _targetPosition += pivotLocal * (ratio - 1f);
+        ClampTargetPosition();
     }
 
-    void ClampPosition()
+    // ── Segéd ─────────────────────────────────────────────────────────────
+
+    void ClampTargetPosition()
     {
         if (_parentRect == null) return;
 
-        float scale    = _rect.localScale.x;
-        float maxMoveX = (_rect.rect.width  * scale - _parentRect.rect.width)  * 0.5f;
-        float maxMoveY = (_rect.rect.height * scale - _parentRect.rect.height) * 0.5f;
+        float maxMoveX = Mathf.Max(0f, (_rect.rect.width  * _targetScale - _parentRect.rect.width)  * 0.5f);
+        float maxMoveY = Mathf.Max(0f, (_rect.rect.height * _targetScale - _parentRect.rect.height) * 0.5f);
 
-        maxMoveX = Mathf.Max(0f, maxMoveX);
-        maxMoveY = Mathf.Max(0f, maxMoveY);
-
-        Vector2 pos = _rect.anchoredPosition;
-        pos.x = Mathf.Clamp(pos.x, -maxMoveX, maxMoveX);
-        pos.y = Mathf.Clamp(pos.y, -maxMoveY, maxMoveY);
-        _rect.anchoredPosition = pos;
+        _targetPosition.x = Mathf.Clamp(_targetPosition.x, -maxMoveX, maxMoveX);
+        _targetPosition.y = Mathf.Clamp(_targetPosition.y, -maxMoveY, maxMoveY);
     }
-
-    // ── Reset ─────────────────────────────────────────────────────────
 
     public void ResetView()
     {
-        _rect.localScale       = Vector3.one;
+        _targetScale           = minZoom;
+        _targetPosition        = Vector2.zero;
+        _rect.localScale       = Vector3.one * minZoom;
         _rect.anchoredPosition = Vector2.zero;
     }
 }

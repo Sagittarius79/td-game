@@ -127,13 +127,29 @@ MonoBehaviour:
     minCharacterLevel: 10
   - id: Target_tower
     displayName: Unlock Target Tower
-    description: You can target an Enemy to make Focus Attack
+    description: You can target an Enemy to make Focus Attack and see they actual
+      Life
     icon: {fileID: 0}
     maxLevel: 1
     costPerLevel: 1
     row: 1
     column: 1
-    prerequisites: []
+    prerequisites:
+    - Building_HP_OVER_Regen
+    effectType: 0
+    effectValuePerLevel: 0
+    fixedCostPerLevel: 1
+    minCharacterLevel: 10
+  - id: Spy_Tower_Unlock
+    displayName: Spy Tower Unlock
+    description: You Can Check What Your Enemies Doing?
+    icon: {fileID: 0}
+    maxLevel: 1
+    costPerLevel: 1
+    row: 1
+    column: 1
+    prerequisites:
+    - Building_HP_OVER_Regen
     effectType: 0
     effectValuePerLevel: 0
     fixedCostPerLevel: 1

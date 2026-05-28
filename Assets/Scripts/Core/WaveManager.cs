@@ -57,6 +57,7 @@ public class WaveManager : MonoBehaviour
     private int aliveEnemies = 0;
     private float nextWaveTime = 0f;
     private bool gameStarted = false;
+    private int _goldBonusKillCount = 0;  // Charm GoldBonus számláló – minden 10. ölés ad bónuszt
     private readonly HashSet<ulong> _sentSoundPlayedBySender = new HashSet<ulong>();
 
     // PvP – ellenfél által küldött szörny csoportok a következő hullámhoz
@@ -218,8 +219,9 @@ public class WaveManager : MonoBehaviour
         }
     }
 
-    /// <summary>Külső kód (pl. SplitOnDeath) hívhatja – az aliveEnemies számláló helyesen frissül.</summary>
-    public void SpawnEnemyAt(GameObject prefab, Vector3 position, int startWaypointIndex = -1)
+    /// <summary>Külső kód (pl. SplitOnDeath, PhoenixRebirth) hívhatja – az aliveEnemies számláló helyesen frissül.</summary>
+    /// <returns>Az Enemy komponens, vagy null ha nincs.</returns>
+    public Enemy SpawnEnemyAt(GameObject prefab, Vector3 position, int startWaypointIndex = -1)
     {
         GameObject enemyGO = Instantiate(prefab, position, Quaternion.identity);
         var enemy = enemyGO.GetComponent<Enemy>();
@@ -227,10 +229,25 @@ public class WaveManager : MonoBehaviour
         {
             if (startWaypointIndex > 0)
                 enemy.overrideStartWaypointIndex = startWaypointIndex;
+            enemy.enemyTypeName   = prefab.name;
+            enemy.countAsKill     = false;
             enemy.OnDied          += OnEnemyDied;
             enemy.OnReachedCastle += OnEnemyReachedCastle;
             aliveEnemies++;
         }
+        return enemy;
+    }
+
+    /// <summary>
+    /// Eltávolít egy enemy-t a nyomkövetésből anélkül, hogy megölné (pl. PhoenixEgg keltetéskor).
+    /// Csökkenti az aliveEnemies számlálót és leiratkozik az eseményekről.
+    /// </summary>
+    public void UnregisterEnemy(Enemy enemy)
+    {
+        if (enemy == null) return;
+        enemy.OnDied          -= OnEnemyDied;
+        enemy.OnReachedCastle -= OnEnemyReachedCastle;
+        EnemyFinished();
     }
 
     void SpawnSingleEnemy(GameObject prefab, Vector3 spawnWorld, ulong senderId = ulong.MaxValue)
@@ -240,6 +257,7 @@ public class WaveManager : MonoBehaviour
         if (enemy != null)
         {
             enemy.senderClientId  = senderId;
+            enemy.enemyTypeName   = prefab.name;
             enemy.OnDied          += OnEnemyDied;
             enemy.OnReachedCastle += OnEnemyReachedCastle;
             aliveEnemies++;
@@ -287,6 +305,25 @@ public class WaveManager : MonoBehaviour
         if (GameManager.Instance != null)
         {
             GameManager.Instance.AddGold(GameManager.Instance.goldPerKill);
+            if (enemy.countAsKill)
+            {
+                GameManager.Instance.RecordKill(enemy.enemyTypeName, enemy.spriteRenderer?.sprite);
+                UserProgressManager.Instance?.RecordMonsterKill();
+
+                // Charm: GoldBonus – minden 20. ölésre +N arany.
+                // N = az equipelt gold charmok effectValue összege (Lvl1=1, Lvl2=2, Lvl3=3).
+                float goldAmount = CharmEffects.GetEquippedTotal(CharmEffectType.GoldBonus);
+                if (goldAmount > 0f)
+                {
+                    _goldBonusKillCount++;
+                    if (_goldBonusKillCount >= 20)
+                    {
+                        _goldBonusKillCount = 0;
+                        GameManager.Instance.AddGold(Mathf.RoundToInt(goldAmount));
+                        CharmEffects.PlayEffectSound(CharmEffectType.GoldBonus);
+                    }
+                }
+            }
             GameManager.Instance.OnEnemyKilled?.Invoke();
         }
 

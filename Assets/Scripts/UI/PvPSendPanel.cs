@@ -39,6 +39,9 @@ public class PvPSendPanel : MonoBehaviour
     public SendTarget sendTarget = SendTarget.OpponentOnly;
 
 
+    [Header("Rúna konfiguráció")]
+    public RuneConfig runeConfig;
+
     [Header("Küldési zárolás")]
     [Tooltip("Ennyi másodperccel a hullám előtt már nem lehet küldeni")]
     public float sendLockBeforeWave = 4f;
@@ -63,6 +66,9 @@ public class PvPSendPanel : MonoBehaviour
     {
         if (backdropButton != null)
             backdropButton.onClick.AddListener(ClosePanel);
+
+        if (RuneBuffManager.Instance != null)
+            RuneBuffManager.Instance.OnStackChanged += RefreshItemPrices;
 
         ClosePanel();
 
@@ -108,6 +114,20 @@ public class PvPSendPanel : MonoBehaviour
         if (backdropButton != null) backdropButton.gameObject.SetActive(false);
     }
 
+    void RefreshItemPrices()
+    {
+        if (GameManager.Instance == null) return;
+        int gold = GameManager.Instance.CurrentGold;
+        foreach (var item in GetComponentsInChildren<PvPSendItem>(true))
+            item.RefreshPrice(gold);
+    }
+
+    void OnDestroy()
+    {
+        if (RuneBuffManager.Instance != null)
+            RuneBuffManager.Instance.OnStackChanged -= RefreshItemPrices;
+    }
+
     // ── Szörny küldés (PvPSendItem hívja) ───────────────────────────
 
     /// <summary>Igaz, ha a hullámig kevesebb mint sendLockBeforeWave másodperc van hátra.</summary>
@@ -130,13 +150,17 @@ public class PvPSendPanel : MonoBehaviour
 
         var def = sendableEnemies[enemyIndex];
 
-        if (!GameManager.Instance.CanAfford(def.goldCost))
+        int effectiveCost = RuneBuffManager.Instance != null
+            ? RuneBuffManager.Instance.GetEffectiveSendCost(def.goldCost, runeConfig)
+            : def.goldCost;
+
+        if (!GameManager.Instance.CanAfford(effectiveCost))
         {
             UIManager.Instance?.ShowNotEnoughGold();
             return;
         }
 
-        GameManager.Instance.SpendGold(def.goldCost);
+        GameManager.Instance.SpendGold(effectiveCost);
 
         int count = Mathf.Max(1, def.sendCount);
 

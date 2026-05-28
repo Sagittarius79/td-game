@@ -50,3 +50,16 @@ crashlytics-build.properties
 # ── Build kimenet (saját) ────────────────────────────────────────────────────
 Builds/
 Build/
+
+# ── Android build fájlok ─────────────────────────────────────────────────────
+*.apk
+*.aab
+
+# ── Keystore (privát aláíró kulcs) ───────────────────────────────────────────
+*.keystore
+
+# ── Backup mappák ─────────────────────────────────────────────────────────────
+*_BackUpThisFolder_ButDontShipItWithYourGame/
+
+# ── Unity ideiglenes build könyvtár ──────────────────────────────────────────
+.utmp/

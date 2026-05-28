@@ -98,6 +98,9 @@ public class LoginUI : MonoBehaviour
         if (loginPanel == null) return;
         bool loggedIn = GoogleAuthManager.Instance != null && GoogleAuthManager.Instance.IsSignedIn;
         loginPanel.SetActive(!loggedIn);
+        RefreshUI();
+        if (!loggedIn)
+            FindObjectOfType<MainMenuUI>()?.SetCharacterCardVisible(false);
     }
 
     public void Show()
@@ -205,7 +208,7 @@ public class LoginUI : MonoBehaviour
     IEnumerator ShowCharacterFlowAfterDelay(float delay)
     {
         yield return new UnityEngine.WaitForSeconds(delay);
-        Hide();
+        if (loginPanel != null) loginPanel.SetActive(false);
 
         bool hasCharacters = UserProgressManager.Instance != null
                           && UserProgressManager.Instance.HasAnyCharacter;

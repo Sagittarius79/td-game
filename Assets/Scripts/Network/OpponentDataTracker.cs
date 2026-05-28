@@ -17,6 +17,9 @@ public class OpponentDataTracker : MonoBehaviour
     // clientId → kastély HP
     private Dictionary<ulong, int> _castleHp = new Dictionary<ulong, int>();
 
+    // clientId → (távolság, HP, szörny darabszám) a kastélyhoz legközelebb lévő szörnyről (-1 = nincs)
+    private Dictionary<ulong, (float dist, float hp, int count)> _closestEnemy = new Dictionary<ulong, (float, float, int)>();
+
     void Awake()
     {
         if (Instance != null && Instance != this) { Destroy(gameObject); return; }
@@ -37,11 +40,54 @@ public class OpponentDataTracker : MonoBehaviour
         counts[towerName] = counts.TryGetValue(towerName, out int c) ? c + 1 : 1;
     }
 
+    public void RecordTowerRemoved(ulong clientId, string towerName)
+    {
+        if (IsServerClientId(clientId)) return;
+        if (!_towerCounts.TryGetValue(clientId, out var counts)) return;
+        if (!counts.TryGetValue(towerName, out int c)) return;
+
+        if (c <= 1)
+            counts.Remove(towerName);
+        else
+            counts[towerName] = c - 1;
+    }
+
     public void RecordCastleHp(ulong clientId, int hp)
     {
         if (IsServerClientId(clientId)) return;
         _castleHp[clientId] = hp;
     }
+
+    /// <summary>Spectate válaszból érkező autoritatív torony-szám felülírása (nem inkrementál).</summary>
+    public void SetTowerCounts(ulong clientId, Dictionary<string, int> counts)
+    {
+        if (IsServerClientId(clientId)) return;
+        _towerCounts[clientId] = new Dictionary<string, int>(counts);
+    }
+
+    public Dictionary<string, int> GetTowerCounts(ulong clientId) =>
+        _towerCounts.TryGetValue(clientId, out var c) ? c : null;
+
+    public int TotalClosestEnemyUpdates { get; private set; }
+
+    public void RecordClosestEnemyDist(ulong clientId, float dist, float hp, int enemyCount = 0)
+    {
+        if (IsServerClientId(clientId)) return;
+        _closestEnemy[clientId] = (dist, hp, enemyCount);
+        TotalClosestEnemyUpdates++;
+    }
+
+    public int   GetCastleHp(ulong clientId) =>
+        _castleHp.TryGetValue(clientId, out int h) ? h : -1;
+
+    public float GetClosestEnemyDist(ulong clientId) =>
+        _closestEnemy.TryGetValue(clientId, out var e) ? e.dist : -1f;
+
+    public float GetClosestEnemyHp(ulong clientId) =>
+        _closestEnemy.TryGetValue(clientId, out var e) ? e.hp : -1f;
+
+    public int GetClosestEnemyCount(ulong clientId) =>
+        _closestEnemy.TryGetValue(clientId, out var e) ? e.count : -1;
 
     // Solo módban a helyi játékos adatait ezen az ID-n tároljuk
     public const ulong SoloClientId = 9999UL;
@@ -54,12 +100,14 @@ public class OpponentDataTracker : MonoBehaviour
     {
         _towerCounts.Remove(clientId);
         _castleHp.Remove(clientId);
+        _closestEnemy.Remove(clientId);
     }
 
     public void Reset()
     {
         _towerCounts.Clear();
         _castleHp.Clear();
+        _closestEnemy.Clear();
     }
 
     // ── Lekérdezés ───────────────────────────────────────────────────

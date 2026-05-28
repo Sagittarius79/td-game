@@ -108,4 +108,29 @@ public class SpyTowerPanelUI : MonoBehaviour
         yield return new WaitForSeconds(autoCloseDelay);
         Hide();
     }
+
+#if UNITY_EDITOR
+    [ContextMenu("Test: Show 1 ellenfél (fake adat)")]
+    void TestShow1()
+    {
+        Show(new List<OpponentSnapshot>
+        {
+            new OpponentSnapshot("Teszt Játékos", "ArcherTower", 18),
+        });
+    }
+
+    [ContextMenu("Test: Show 3 ellenfél (fake adat)")]
+    void TestShow3()
+    {
+        Show(new List<OpponentSnapshot>
+        {
+            new OpponentSnapshot("Játékos A", "ArcherTower",  24),
+            new OpponentSnapshot("Játékos B", "LASER",         7),
+            new OpponentSnapshot("Játékos C", "–",            -1),
+        });
+    }
+
+    [ContextMenu("Test: ShowNoOpponent")]
+    void TestNoOpponent() => ShowNoOpponent();
+#endif
 }

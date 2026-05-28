@@ -19,7 +19,7 @@ MonoBehaviour:
     displayName: Unlock Poison Tower
     description: 'You can Build Poison Tower '
     icon: {fileID: 0}
-    maxLevel: 20
+    maxLevel: 1
     costPerLevel: 1
     row: 1
     column: 1

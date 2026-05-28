@@ -1,0 +1,10 @@
+<linker>
+  <!-- Preserve all game scripts to prevent IL2CPP stripping -->
+  <assembly fullname="Assembly-CSharp" preserve="all"/>
+
+  <!-- Unity Netcode - reflection és virtual dispatch miatt szükséges -->
+  <assembly fullname="Unity.Netcode.Runtime" preserve="all"/>
+  <assembly fullname="Unity.Netcode.Transports.UTP" preserve="all"/>
+  <assembly fullname="Unity.Networking.Transport" preserve="all"/>
+  <assembly fullname="Unity.Collections" preserve="all"/>
+</linker>

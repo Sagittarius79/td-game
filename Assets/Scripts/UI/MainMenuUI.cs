@@ -134,7 +134,8 @@ public class MainMenuUI : MonoBehaviour
 
     public void OnSoloPressed()
     {
-        if (UserProgressManager.Instance == null || !UserProgressManager.Instance.HasCharacter)
+        var upm = UserProgressManager.Instance;
+        if (upm == null || !upm.HasCharacter)
             return;
 
         XPManager.Instance?.SetMatchType(isPvP: false);

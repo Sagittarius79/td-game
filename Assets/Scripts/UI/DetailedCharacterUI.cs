@@ -19,6 +19,7 @@ public class DetailedCharacterUI : MonoBehaviour
     public GameObject characterEntryPrefab;
 
     [Header("Gombok")]
+    public Button characterSheetButton;
     public Button skillsButton;
     public Button specialBuildingsButton;
     public Button monstersButton;
@@ -34,6 +35,9 @@ public class DetailedCharacterUI : MonoBehaviour
 
     void Start()
     {
+        if (characterSheetButton != null)
+            characterSheetButton.onClick.AddListener(OnCharacterSheetPressed);
+
         if (skillsButton != null)
             skillsButton.onClick.AddListener(OnSkillsPressed);
 
@@ -81,6 +85,12 @@ public class DetailedCharacterUI : MonoBehaviour
         var go = Instantiate(characterEntryPrefab, characterCardSlot);
         _card = go.GetComponent<CharacterEntryUI>();
         _card?.SetupDisplay(mgr.Data);
+    }
+
+    void OnCharacterSheetPressed()
+    {
+        if (detailPanel != null) detailPanel.SetActive(false);
+        CharacterInventoryUI.Instance?.Show();
     }
 
     void OnSkillsPressed()

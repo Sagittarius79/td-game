@@ -47,7 +47,6 @@ public class PvPSendItem : MonoBehaviour
             if (costText  != null) costText.text = $"{def.goldCost} G";
         }
 
-        // Feliratkozás arany változásra
         if (GameManager.Instance != null)
             GameManager.Instance.OnGoldChanged += UpdateAffordability;
 
@@ -69,15 +68,22 @@ public class PvPSendItem : MonoBehaviour
 
     // ── Vizuális visszajelzés ────────────────────────────────────────
 
+    public void RefreshPrice(int gold) => UpdateAffordability(gold);
+
     void UpdateAffordability(int gold)
     {
         if (PvPSendPanel.Instance == null ||
             PvPSendPanel.Instance.sendableEnemies == null ||
             enemyIndex >= PvPSendPanel.Instance.sendableEnemies.Length) return;
 
-        int cost = PvPSendPanel.Instance.sendableEnemies[enemyIndex].goldCost;
-        bool canAfford = gold >= cost;
+        int baseCost = PvPSendPanel.Instance.sendableEnemies[enemyIndex].goldCost;
+        int cost = RuneBuffManager.Instance != null
+            ? RuneBuffManager.Instance.GetEffectiveSendCost(baseCost, PvPSendPanel.Instance.runeConfig)
+            : baseCost;
 
+        if (costText != null) costText.text = $"{cost} G";
+
+        bool canAfford = gold >= cost;
         if (iconImage   != null) iconImage.color = canAfford ? affordableColor : unaffordableColor;
         if (canvasGroup != null) canvasGroup.alpha = canAfford ? 1f : 0.4f;
     }
